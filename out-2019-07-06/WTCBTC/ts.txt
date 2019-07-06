@@ -8,3 +8,6 @@ TIME				CLOSE				POS
 10:53				0.00026500			PositionState[ maintained=false, outdated=false, phase=HOLD, flags=NONE]			
 10:54				0.00026690			PositionState[ maintained=false, outdated=false, phase=HOLD, flags=NONE]			
 10:55				0.00026600			PositionState[ maintained=false, outdated=false, phase=HOLD, flags=NONE]			
+10:56				0.00026810			PositionState[ maintained=false, outdated=false, phase=HOLD, flags=NONE]			
+10:57				0.00026720			PositionState[ maintained=false, outdated=false, phase=HOLD, flags=NONE]			
+10:58				0.00026790			PositionState[ maintained=false, outdated=false, phase=HOLD, flags=NONE]			
