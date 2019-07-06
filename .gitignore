@@ -3,3 +3,4 @@
 *.iml
 target/*
 ApiKeys.java
+.DS_Store

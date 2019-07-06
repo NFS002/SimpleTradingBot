@@ -1441,3 +1441,675 @@
   <thread>19</thread>
   <message>Checking exit queue</message>
 </record>
+<record>
+  <date>2019-07-06T09:53:19.398419Z</date>
+  <millis>1562406799398</millis>
+  <nanos>419000</nanos>
+  <sequence>173</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:22.060917Z</date>
+  <millis>1562406802060</millis>
+  <nanos>917000</nanos>
+  <sequence>174</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:24.211297Z</date>
+  <millis>1562406804211</millis>
+  <nanos>297000</nanos>
+  <sequence>175</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:26.361826Z</date>
+  <millis>1562406806361</millis>
+  <nanos>826000</nanos>
+  <sequence>176</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:28.409826Z</date>
+  <millis>1562406808409</millis>
+  <nanos>826000</nanos>
+  <sequence>177</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:31.276934Z</date>
+  <millis>1562406811276</millis>
+  <nanos>934000</nanos>
+  <sequence>178</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:34.660629Z</date>
+  <millis>1562406814660</millis>
+  <nanos>629000</nanos>
+  <sequence>179</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:37.833054Z</date>
+  <millis>1562406817833</millis>
+  <nanos>54000</nanos>
+  <sequence>180</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:40.188708Z</date>
+  <millis>1562406820188</millis>
+  <nanos>708000</nanos>
+  <sequence>181</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:43.265006Z</date>
+  <millis>1562406823265</millis>
+  <nanos>6000</nanos>
+  <sequence>182</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:45.724422Z</date>
+  <millis>1562406825724</millis>
+  <nanos>422000</nanos>
+  <sequence>183</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:48.176165Z</date>
+  <millis>1562406828176</millis>
+  <nanos>165000</nanos>
+  <sequence>184</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:51.229208Z</date>
+  <millis>1562406831229</millis>
+  <nanos>208000</nanos>
+  <sequence>185</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:54.337276Z</date>
+  <millis>1562406834337</millis>
+  <nanos>276000</nanos>
+  <sequence>186</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:53:57.392153Z</date>
+  <millis>1562406837392</millis>
+  <nanos>153000</nanos>
+  <sequence>187</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:00.216116Z</date>
+  <millis>1562406840216</millis>
+  <nanos>116000</nanos>
+  <sequence>188</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:01.177859Z</date>
+  <millis>1562406841177</millis>
+  <nanos>859000</nanos>
+  <sequence>189</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:03.226054Z</date>
+  <millis>1562406843226</millis>
+  <nanos>54000</nanos>
+  <sequence>190</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:03.226721Z</date>
+  <millis>1562406843226</millis>
+  <nanos>721000</nanos>
+  <sequence>191</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>onResponse</method>
+  <thread>19</thread>
+  <message>Adding bar to timeseries: CandlestickEvent[eventType=kline,eventTime=1562406843083,symbol=WTCBTC,openTime=1562406840000,open=0.00026670,high=0.00026690,low=0.00026670,close=0.00026690,volume=66.56000000,closeTime=1562406899999,intervalId=1m,firstTradeId=10338518,lastTradeId=10338521,quoteAssetVolume=0.01776024,numberOfTrades=4,takerBuyBaseAssetVolume=66.56000000,takerBuyQuoteAssetVolume=0.01776024,isBarFinal=false]</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:03.227277Z</date>
+  <millis>1562406843227</millis>
+  <nanos>277000</nanos>
+  <sequence>192</sequence>
+  <logger>root.WTCBTC.TrailingStop</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.TrailingStop</class>
+  <method>update</method>
+  <thread>19</thread>
+  <message>Updating stop loss: 0.0002</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:03.227537Z</date>
+  <millis>1562406843227</millis>
+  <nanos>537000</nanos>
+  <sequence>193</sequence>
+  <logger>root.WTCBTC.Trader</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Trader</class>
+  <method>update</method>
+  <thread>19</thread>
+  <message>Position not maintained, skipping update.</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:03.227824Z</date>
+  <millis>1562406843227</millis>
+  <nanos>824000</nanos>
+  <sequence>194</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>shouldClose</method>
+  <thread>19</thread>
+  <message>State type: HOLD, updated: true</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:03.228230Z</date>
+  <millis>1562406843228</millis>
+  <nanos>230000</nanos>
+  <sequence>195</sequence>
+  <logger>root.WTCBTC.Trader</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Trader</class>
+  <method>shouldClose</method>
+  <thread>19</thread>
+  <message>Last price: 0.00026690. Stop loss: 0.000253554999999999988147258989101828774437308311462402343750. Breached: false</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:03.228502Z</date>
+  <millis>1562406843228</millis>
+  <nanos>502000</nanos>
+  <sequence>196</sequence>
+  <logger>root.WTCBTC.Trader</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Trader</class>
+  <method>shouldOpen</method>
+  <thread>19</thread>
+  <message>State: HOLD. Updated: true</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:03.228778Z</date>
+  <millis>1562406843228</millis>
+  <nanos>778000</nanos>
+  <sequence>197</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>onResponse</method>
+  <thread>19</thread>
+  <message>No action taken</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:05.993134Z</date>
+  <millis>1562406845993</millis>
+  <nanos>134000</nanos>
+  <sequence>198</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:08.983209Z</date>
+  <millis>1562406848983</millis>
+  <nanos>209000</nanos>
+  <sequence>203</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:11.237584Z</date>
+  <millis>1562406851237</millis>
+  <nanos>584000</nanos>
+  <sequence>204</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:13.937378Z</date>
+  <millis>1562406853937</millis>
+  <nanos>378000</nanos>
+  <sequence>205</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:16.748881Z</date>
+  <millis>1562406856748</millis>
+  <nanos>881000</nanos>
+  <sequence>206</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:19.444694Z</date>
+  <millis>1562406859444</millis>
+  <nanos>694000</nanos>
+  <sequence>207</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:22.087895Z</date>
+  <millis>1562406862087</millis>
+  <nanos>895000</nanos>
+  <sequence>208</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:25.078761Z</date>
+  <millis>1562406865078</millis>
+  <nanos>761000</nanos>
+  <sequence>209</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:27.392472Z</date>
+  <millis>1562406867392</millis>
+  <nanos>472000</nanos>
+  <sequence>210</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:29.646608Z</date>
+  <millis>1562406869646</millis>
+  <nanos>608000</nanos>
+  <sequence>211</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:32.112317Z</date>
+  <millis>1562406872112</millis>
+  <nanos>317000</nanos>
+  <sequence>212</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:35.176920Z</date>
+  <millis>1562406875176</millis>
+  <nanos>920000</nanos>
+  <sequence>213</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:37.066242Z</date>
+  <millis>1562406877066</millis>
+  <nanos>242000</nanos>
+  <sequence>214</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:39.475301Z</date>
+  <millis>1562406879475</millis>
+  <nanos>301000</nanos>
+  <sequence>215</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:42.479097Z</date>
+  <millis>1562406882479</millis>
+  <nanos>97000</nanos>
+  <sequence>216</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:44.699817Z</date>
+  <millis>1562406884699</millis>
+  <nanos>817000</nanos>
+  <sequence>217</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:47.463274Z</date>
+  <millis>1562406887463</millis>
+  <nanos>274000</nanos>
+  <sequence>218</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:49.612863Z</date>
+  <millis>1562406889612</millis>
+  <nanos>863000</nanos>
+  <sequence>219</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:53.299412Z</date>
+  <millis>1562406893299</millis>
+  <nanos>412000</nanos>
+  <sequence>220</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:56.065955Z</date>
+  <millis>1562406896065</millis>
+  <nanos>955000</nanos>
+  <sequence>221</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:54:58.522547Z</date>
+  <millis>1562406898522</millis>
+  <nanos>547000</nanos>
+  <sequence>222</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:55:00.243062Z</date>
+  <millis>1562406900243</millis>
+  <nanos>62000</nanos>
+  <sequence>223</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:55:02.516001Z</date>
+  <millis>1562406902516</millis>
+  <nanos>1000</nanos>
+  <sequence>224</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
+<record>
+  <date>2019-07-06T09:55:02.517249Z</date>
+  <millis>1562406902517</millis>
+  <nanos>249000</nanos>
+  <sequence>225</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>onResponse</method>
+  <thread>19</thread>
+  <message>Adding bar to timeseries: CandlestickEvent[eventType=kline,eventTime=1562406902320,symbol=WTCBTC,openTime=1562406900000,open=0.00026690,high=0.00026690,low=0.00026600,close=0.00026600,volume=325.42000000,closeTime=1562406959999,intervalId=1m,firstTradeId=10338668,lastTradeId=10338671,quoteAssetVolume=0.08663282,numberOfTrades=4,takerBuyBaseAssetVolume=29.00000000,takerBuyQuoteAssetVolume=0.00774010,isBarFinal=false]</message>
+</record>
+<record>
+  <date>2019-07-06T09:55:02.518075Z</date>
+  <millis>1562406902518</millis>
+  <nanos>75000</nanos>
+  <sequence>226</sequence>
+  <logger>root.WTCBTC.TrailingStop</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.TrailingStop</class>
+  <method>update</method>
+  <thread>19</thread>
+  <message>No stop loss update required</message>
+</record>
+<record>
+  <date>2019-07-06T09:55:02.518345Z</date>
+  <millis>1562406902518</millis>
+  <nanos>345000</nanos>
+  <sequence>227</sequence>
+  <logger>root.WTCBTC.Trader</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Trader</class>
+  <method>update</method>
+  <thread>19</thread>
+  <message>Position not maintained, skipping update.</message>
+</record>
+<record>
+  <date>2019-07-06T09:55:02.518564Z</date>
+  <millis>1562406902518</millis>
+  <nanos>564000</nanos>
+  <sequence>228</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>shouldClose</method>
+  <thread>19</thread>
+  <message>State type: HOLD, updated: true</message>
+</record>
+<record>
+  <date>2019-07-06T09:55:02.518833Z</date>
+  <millis>1562406902518</millis>
+  <nanos>833000</nanos>
+  <sequence>229</sequence>
+  <logger>root.WTCBTC.Trader</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Trader</class>
+  <method>shouldClose</method>
+  <thread>19</thread>
+  <message>Last price: 0.00026600. Stop loss: 0.000253554999999999988147258989101828774437308311462402343750. Breached: false</message>
+</record>
+<record>
+  <date>2019-07-06T09:55:02.519060Z</date>
+  <millis>1562406902519</millis>
+  <nanos>60000</nanos>
+  <sequence>230</sequence>
+  <logger>root.WTCBTC.Trader</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Trader</class>
+  <method>shouldOpen</method>
+  <thread>19</thread>
+  <message>State: HOLD. Updated: true</message>
+</record>
+<record>
+  <date>2019-07-06T09:55:02.519252Z</date>
+  <millis>1562406902519</millis>
+  <nanos>252000</nanos>
+  <sequence>231</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>onResponse</method>
+  <thread>19</thread>
+  <message>No action taken</message>
+</record>
+<record>
+  <date>2019-07-06T09:55:04.973402Z</date>
+  <millis>1562406904973</millis>
+  <nanos>402000</nanos>
+  <sequence>232</sequence>
+  <logger>root.WTCBTC</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.Controller</class>
+  <method>checkExitQueue</method>
+  <thread>19</thread>
+  <message>Checking exit queue</message>
+</record>
