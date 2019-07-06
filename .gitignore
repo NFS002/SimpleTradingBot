@@ -2,3 +2,4 @@
 .attach*
 *.iml
 target/*
+*/ApiKeys.java

@@ -13,7 +13,7 @@ and using quantative modelling for technical analysis.
             <version>master-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <!-- TA library -->
+            TA_RULES
             <groupId>org.ta4j</groupId>
             <artifactId>ta4j-core</artifactId>
             <version>0.11</version>

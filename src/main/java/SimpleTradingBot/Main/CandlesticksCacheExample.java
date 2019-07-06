@@ -53,7 +53,7 @@ public class CandlesticksCacheExample {
                 // new candlestick
                 updateCandlestick = new Candlestick();
             }
-            // update candlestick with the stream data
+            // maintain candlestick with the stream data
             updateCandlestick.setOpenTime(response.getOpenTime());
             updateCandlestick.setOpen(response.getOpen());
             updateCandlestick.setLow(response.getLow());

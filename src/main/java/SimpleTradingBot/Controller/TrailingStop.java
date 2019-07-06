@@ -1,58 +1,56 @@
 package SimpleTradingBot.Controller;
+
 import SimpleTradingBot.Config.Config;
+import SimpleTradingBot.Util.Static;
 import com.binance.api.client.domain.market.TickerStatistics;
 import com.binance.api.client.exception.BinanceApiException;
+import org.ta4j.core.Bar;
+import org.ta4j.core.num.PrecisionNum;
 
-import java.io.PrintWriter;
+import java.math.BigDecimal;
 import java.util.logging.Logger;
+
 
 public class TrailingStop {
 
-
-    private double stopLoss;
+    private BigDecimal stopLoss;
 
     private Logger log;
 
-    private int n = 0;
-
     public TrailingStop(TickerStatistics symbol) {
-        this.log = Logger.getLogger("root." + symbol + ".slb");
-        this.stopLoss = 0;
+        String loggerName = this.getClass().getSimpleName();
+        this.log = Logger.getLogger("root." + symbol.getSymbol() + "." + loggerName);
+        this.stopLoss = BigDecimal.ZERO;
     }
 
-    public void setStopLoss(double stopLoss) {
+    void reset() {
+        setStopLoss( BigDecimal.ZERO );
+    }
+
+    public void setStopLoss( BigDecimal stopLoss ) {
+        this.log.entering( this.getClass().getSimpleName(), "setStopLoss");
         this.stopLoss = stopLoss;
-        log.info("Setting initial stop loss value to: " + stopLoss);
+        log.info("Setting stop loss value to: " + Static.formatNum( PrecisionNum.valueOf( stopLoss ) ) );
+        this.log.exiting( this.getClass().getSimpleName(), "setStopLoss");
     }
 
-    public double getStopLoss() {
-        return stopLoss;
+    BigDecimal getStopLoss() {
+        return this.stopLoss;
     }
 
-    public void updateStopLoss(double lastPrice) throws BinanceApiException {
-        log.entering(this.getClass().getSimpleName(),"updateStopLoss");
-        double newStopLoss = lastPrice * Config.trailingLoss;
-        stopLoss = Math.max(stopLoss, newStopLoss);
-        log.exiting(this.getClass().getSimpleName(), "updateStopLoss");
-        /*boolean shouldClose = false;
-        String msg = "\nUpdate :  " + ++n + "\nCurrent stop loss: " + stopLoss + "\nReceived close: " + lastPrice;
-        log.info(msg);
-        if (stopLoss != 0) {
-            double newStopLoss = lastPrice * Config.trailingLoss;
-            if (lastPrice <= stopLoss) {
-                log.info("Closing position");
-                shouldClose = true;
-            }
-            else if (newStopLoss > stopLoss) {
-                this.stopLoss = newStopLoss;
-                log.info("Updating stop loss calculated at : " + String.valueOf(this.stopLoss));
-            }
-            else {
-                log.info("Maintaining stop loss");
-            }
+    public void update( Bar bar ) {
+        update( new BigDecimal( bar.getClosePrice().toString() ) );
+    }
+
+    public void update( BigDecimal lastPrice ) throws BinanceApiException {
+        log.entering(this.getClass().getSimpleName(),"maintain");
+        BigDecimal newStopLoss = lastPrice.multiply( Config.STOP_LOSS_PERCENT );
+        if ( newStopLoss.compareTo( this.stopLoss ) >= 0 ) {
+            log.info("Updating stop loss: " + Static.safeDecimal( lastPrice, 5));
+            this.stopLoss = newStopLoss;
         }
-        else log.info("No open order");
-        log.exiting(this.getClass().getSimpleName(),"updateStopLoss");
-        return shouldClose;*/
+        else
+            log.info( "No stop loss update required" );
+        log.exiting(this.getClass().getSimpleName(), "maintain");
     }
 }

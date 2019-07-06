@@ -9,4 +9,9 @@ public class SymbolComparator implements Comparator<TickerStatistics> {
     public int compare(TickerStatistics s1, TickerStatistics s2) {
         return (int) Math.round(Double.parseDouble(s2.getPriceChangePercent()) - Double.parseDouble(s1.getPriceChangePercent()));
     }
+
+    @Override
+    public String toString() {
+        return "PRICE_CHANGE_PERCENT";
+    }
 }
