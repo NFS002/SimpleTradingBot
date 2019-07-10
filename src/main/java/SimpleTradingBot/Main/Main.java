@@ -26,7 +26,7 @@ public class Main {
 
     }
 
-    private static void selectSymbols(List<TickerStatistics> list) throws Exception {
+    private static void selectSymbols( List<TickerStatistics> list ) throws Exception {
 
     }
 }

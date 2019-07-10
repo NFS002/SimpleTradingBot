@@ -12,6 +12,7 @@ import org.ta4j.core.Bar;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /* Keeps track of all chronological events,
@@ -114,32 +115,25 @@ public class TimeKeeper {
     private boolean checkEventTime(long time_diff) throws STBException {
         log.entering(this.getClass().getSimpleName(), "checkEventTime");
         long tolerance = Config.INTERVAL_TOLERANCE; /* 5000 Milliseconds */
-        int warningPeriod = 6;
-        if ( this.nErr < Config.MAX_ERR - warningPeriod )
-            log.fine("Next candlestick time difference: " + time_diff + ", tolerance: " + tolerance );
-        else
-            log.info("Next candlestick time difference: " + time_diff + ", tolerance: " + tolerance );
+        int warningPeriod = 3;
+        Level level = this.nErr < Config.MAX_ERR - warningPeriod ? Level.FINE :  Level.WARNING;
+        log.fine("Next candlestick time difference: " + time_diff + ", tolerance: " + tolerance );
         if ( ( time_diff <= tolerance)  && ( time_diff  > 0 ) ) {
             this.nErr = 0;
-            log.fine( "Candlestick in time" );
             log.exiting(this.getClass().getSimpleName(), "checkEventTime");
             return true;
         }
         else {
-            if ( this.nErr <= Config.MAX_ERR - warningPeriod )
-                log.fine("Candlestick event out of time, sequence: " + this.nErr );
-            else
-                log.info("Candlestick event out of time, sequence: " + this.nErr );
 
-            log.exiting(this.getClass().getSimpleName(), "checkEventTime");
+            this.log.log(level, "Candlestick event out of time, sequence: " + this.nErr );
+            this.log.exiting(this.getClass().getSimpleName(), "checkEventTime");
 
             if ( ++this.nErr >= Config.MAX_ERR) {
                 this.nErr = 0;
                 throw new STBException( 120 );
             }
-            else {
+            else
                 return false;
-            }
         }
     }
 
@@ -176,7 +170,6 @@ public class TimeKeeper {
     }
 
     private static CandlestickInterval getIntervalFromId( String id ) {
-        /* TODO */
         switch (id) {
             case "1m":
                 return CandlestickInterval.ONE_MINUTE;
@@ -187,7 +180,7 @@ public class TimeKeeper {
         }
     }
 
-    private static long intervalToMillis( CandlestickInterval interval ) {
+    public static long intervalToMillis( CandlestickInterval interval ) {
 
         switch ( interval ) {
             case ONE_MINUTE:

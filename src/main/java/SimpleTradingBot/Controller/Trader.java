@@ -114,7 +114,7 @@ public class Trader {
             return breached;
     }
 
-    void open( BigDecimal close ) throws STBException {
+    boolean open( BigDecimal close ) throws STBException {
         log.entering(this.getClass().getSimpleName(), "open");
         BigDecimal baseQty = this.constraints.getNext_qty();
         BigDecimal qty = baseQty.divide( close, RoundingMode.HALF_UP );
@@ -126,6 +126,10 @@ public class Trader {
         else {
             NewOrder newOrder = marketBuy(this.symbol.getSymbol(), Static.safeDecimal(qty, 20));
             NewOrderResponse response = submit(newOrder, close);
+            if ( response == null) {
+                this.log.warning( "Order suspended");
+                return false;
+            }
             BigDecimal initialStop = close.multiply(Config.STOP_LOSS_PERCENT);
             this.trailingStop.setStopLoss(initialStop);
             this.log.info(newOrder.toString());
@@ -135,9 +139,10 @@ public class Trader {
         }
 
         log.exiting(this.getClass().getSimpleName(), "open");
+        return true;
     }
 
-    void close( Bar lastBar ) throws STBException {
+    boolean close( Bar lastBar ) throws STBException {
         log.entering(this.getClass().getSimpleName(), "close");
 
         Num closePrice = lastBar.getClosePrice();
@@ -150,6 +155,10 @@ public class Trader {
         String qty = getSellQty();
         NewOrder sellOrder = marketSell( symbol, qty );
         NewOrderResponse sellOrderResponse = submit( sellOrder, close );
+        if ( sellOrderResponse == null ) {
+            this.log.warning( "Postponed submission");
+            return false;
+        }
         this.sellPrice = close;
         /* Or just use all our free balance
         Account myAccount = client.getAccount();
@@ -162,6 +171,7 @@ public class Trader {
         this.sellOrder = new Position( sellOrder, sellOrderResponse );
         this.trailingStop.reset( );
         log.exiting(this.getClass().getSimpleName(), "close");
+        return true;
     }
 
     private String getSellQty( ) {
@@ -248,17 +258,20 @@ public class Trader {
         switch ( flags ) {
             case RESTART:
             case REVERT:
-                restart( side, close );
+                if (restart( side, close ))
+                    this.state.setAsOutdated();
                 break;
             case CANCEL:
                 cancel( orderId );
+                this.state.setAsOutdated();
             case UPDATE:
                 update_internal( orderId );
+                this.state.setAsOutdated();
                 break;
             case NONE:
                 break;
                 default:
-                    log.severe("Unkown flags: " + flags);
+                    this.log.severe("Unknown flags: " + flags);
 
         }
         log.exiting(this.getClass().getSimpleName(), "update: " + side);
@@ -277,16 +290,21 @@ public class Trader {
         log.exiting(this.getClass().getSimpleName(), "update_internal");
     }
 
-    private void restart( OrderSide side, BigDecimal close )
+    private boolean restart( OrderSide side, BigDecimal close )
         throws STBException{
         log.entering(this.getClass().getSimpleName(), "restart" );
         Position position = ( side == OrderSide.BUY ) ? this.buyOrder : this.sellOrder;
         NewOrder newOrder = position.getOriginalOrder();
         log.info("Restarting order: " + newOrder);
         NewOrderResponse response = submit( newOrder, close  );
-        log.info( "Restarted order: " + response );
+        if ( response == null ) {
+            this.log.info( "Postponing restart");
+            return false;
+        }
+        this.log.info( "Restarted order: " + response );
         position.setOriginalOrderResponse( response );
         log.exiting(this.getClass().getSimpleName(), "restart" );
+        return true;
     }
 
 
@@ -324,7 +342,10 @@ public class Trader {
                 break;
             }
             catch (BinanceApiException e) {
-                log.log(Level.SEVERE, "Failed submission. Attempt: " + i, e);
+                log.log(Level.WARNING, "Failed submission. Attempt: " + i, e);
+                String message = e.getMessage();
+                if ( message.contains("LOT_SIZE"))
+                    return null;
             }
         }
         if ( response == null ) {

@@ -11,9 +11,7 @@ public class STBException extends Exception {
         this.statusCode = statusCode;
     }
 
-
-
-    public String getMessage( int statusCode )  {
+    private String getMessage( int statusCode )  {
         switch ( statusCode ) {
 
             case 40:    return "NO_LOT_FILTER";

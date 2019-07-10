@@ -1,10 +1,10 @@
 package SimpleTradingBot.Models;
 
 /* Why do we need this enum >
-* We encsapulate the type of each trading asset
-* in this enum so the Trader and the Account manager
-* know what actions to take at each maintain, simply
-* by lookng at the value of this enum..
+ * We encsapulate the type of each trading asset
+ * in this enum so the Trader and the Account manager
+ * know what actions to take at each maintain, simply
+ * by lookng at the value of this enum..
  */
 
 public class PositionState {
@@ -15,38 +15,37 @@ public class PositionState {
     /* Where we are in the order cycle */
     private Type type;
 
-    /* A change in flags */
-    private boolean maintained;
 
-    /* The flags/state is outdated, we need to maintain it */
-    private boolean outdated;
+    /* A change in flags or maintanace is required */
+    private Visibility visibility;
 
-    private boolean logged;
+
 
     public PositionState() {
         this.type = Type.CLEAR;
         this.flags = Flags.NONE;;
-        this.maintained = this.outdated = false;
+        this.visibility = Visibility.STABLE;
     }
 
     public void maintain( Type state, Flags flags ) {
-        this.maintained = ( flags != Flags.NONE) && ( flags != this.flags );
-        this.outdated = false;
+        if ( ( flags != Flags.NONE) && ( flags != this.flags ) )
+            this.visibility = Visibility.UPDATED;
+        else
+            this.visibility = Visibility.STABLE;
         this.type = state;
         this.flags = flags;
     }
 
     public boolean getMaintained() {
-        return maintained;
+        return this.visibility == Visibility.UPDATED;
     }
 
     public boolean isOutdated() {
-        return outdated;
+        return this.visibility == Visibility.OUTDATED;
     }
 
     public void setAsOutdated( ) {
-        this.outdated = true;
-        this.maintained = false;
+        this.visibility = Visibility.OUTDATED;
     }
 
     public void setType(Type type) {
@@ -66,20 +65,13 @@ public class PositionState {
     }
 
     public boolean isUpdated( ) {
-        return !this.maintained && !this.outdated;
+        return this.visibility == Visibility.UPDATED;
     }
 
-    public boolean isLogged() {
-        return logged;
-    }
-
-    public void setLogged( ) {
-        this.logged = true;
-    }
 
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + "[ maintained=" + maintained + ", outdated=" + outdated + ", phase=" + type + ", flags=" + flags + "]";
+        return this.getClass().getSimpleName() + "[" + this.type + ", " + this.flags + "," + this.visibility + "]";
     }
 
     /* Describes the current stage in
@@ -112,7 +104,7 @@ public class PositionState {
 
         UPDATED,
 
-        STABLE,
+        STABLE
     }
 
     /* Describes an action that should be taken by the buyer

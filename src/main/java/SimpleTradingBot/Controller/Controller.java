@@ -3,7 +3,7 @@ import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Exception.STBException;
 import org.ta4j.core.num.*;
 import SimpleTradingBot.Models.PositionState;
-import SimpleTradingBot.Services.AccountManager;
+import SimpleTradingBot.Services.HeartBeat;
 import SimpleTradingBot.Util.Handler;
 import SimpleTradingBot.Models.QueueMessage;
 import SimpleTradingBot.Util.Static;
@@ -114,6 +114,10 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         return baseSymbol;
     }
 
+    public TimeSeries getTimeSeries() {
+        return this.timeSeries;
+    }
+
     public String getAsset() {
         return assetSymbol;
     }
@@ -205,7 +209,7 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
     private void checkExitQueue() {
         this.log.entering( this.getClass().getSimpleName(), "checkExitQueue");
         this.log.info( "Checking exit queue");
-        Stream<QueueMessage> messageStream = Static.EXIT_QUEUE.parallelStream();
+        Stream<QueueMessage> messageStream = Static.EXIT_QUEUE.stream();
         Optional<QueueMessage> exitMessage = messageStream.filter(m -> m.getType() == QueueMessage.Type.INTERRUPT && m.getSymbol().equals( this.summary.getSymbol()) ).findFirst();
 
         if ( exitMessage.isPresent() ) {
@@ -253,7 +257,7 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         this.log.exiting( this.getClass().getSimpleName(), "reset");
     }
 
-    void exit( ) {
+    public void exit( ) {
         this.log.entering( this.getClass().getSimpleName(), "exit");
         this.log.warning( "Preparing to exit controller and interrupt thread. ");
         request_deregister();
@@ -267,7 +271,7 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         this.tsWriter.close();
         this.taBot.close();
 
-        log.info( "Removing filter constraint");
+        log.warning( "Removing filter constraint");
         Static.removeConstraint( this.summary.getSymbol() );
 
         StringBuilder msg = new StringBuilder();
@@ -285,14 +289,14 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
     public void onResponse( CandlestickEvent candlestick )  {
         try {
             this.log.entering(this.getClass().getSimpleName(), "onResponse");
-            checkExitQueue();
             log.fine("Received candlestick response");
             Bar lastBar = timeSeries.getLastBar();
             Thread thread = Thread.currentThread();
             thread.setName( "thread." + summary.getSymbol() );
             thread.setUncaughtExceptionHandler( this.handler);
             if ( timeKeeper.checkEvent( lastBar, candlestick )) {
-
+                log.info( "Received candlestick response in time");
+                checkExitQueue();
                 Bar nextBar = candlestickEventToBar( candlestick );
                 log.info("Adding bar to timeseries: " + candlestick);
                 addBarToTimeSeries( nextBar );
@@ -367,9 +371,10 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         log.entering( this.getClass().getSimpleName(), "close");
         log.info("Preparing to close order" );
         PositionState state = getState();
-        buyer.close( lastBar );
-        state.setAsOutdated();
-        state.setType( PositionState.Type.SELL );
+        if (buyer.close( lastBar )) {
+            state.setAsOutdated();
+            state.setType(PositionState.Type.SELL);
+        }
         log.exiting( this.getClass().getSimpleName(), "close");
     }
 
@@ -379,11 +384,12 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         String closeStr = Static.safeDecimal( cp, 20 );
         BigDecimal close = new BigDecimal( closeStr );
         this.log.info("Opening new order at " + closeStr );
-        this.buyer.open( close );
-        PositionState state = getState();
-        state.setType( PositionState.Type.BUY );
-        state.setAsOutdated();
-        restartCoolOff();
+        if (this.buyer.open( close )) {
+            PositionState state = getState();
+            state.setType( PositionState.Type.BUY );
+            state.setAsOutdated();
+            restartCoolOff();
+        }
         log.exiting(Controller.class.getSimpleName(), "open");
     }
 
@@ -445,8 +451,8 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
     }
 
     private void register() {
-        AccountManager accountManager = AccountManager.getInstance();
-        accountManager.register( this);
+        HeartBeat heartBeat = HeartBeat.getInstance();
+        heartBeat.register( this);
     }
 
     private boolean sufficientBars() {
@@ -461,7 +467,7 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
 
 
     private void restartCoolOff() {
-        this.coolOff = Config.coolDown;
+        this.coolOff = Config.COOL_DOWN;
     }
 
     private void initSeries() {

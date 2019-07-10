@@ -5,12 +5,11 @@ import SimpleTradingBot.Controller.Controller;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Models.FilterConstraints;
 import SimpleTradingBot.Services.AccountManager;
-import SimpleTradingBot.Services.AssetManager;
+import SimpleTradingBot.Services.HeartBeat;
 import SimpleTradingBot.Util.*;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.general.*;
 import com.binance.api.client.domain.market.TickerStatistics;
-import com.binance.api.client.exception.BinanceApiException;
 
 import java.util.List;
 import java.util.concurrent.*;
@@ -22,6 +21,15 @@ import static SimpleTradingBot.Config.Config.MAX_SYMBOLS;
 
 public class Schedule {
 
+    /* * TODO:
+     * 1. Plugins, Coin gossip
+     * 2. Num/BigDecimal/DecimalFormat
+     * 3. Rate limits
+     * 4. Commission constraints
+     * 5. CandleStick Interval toId/toMillils
+     * 6. PositionState Visibility
+     *
+     */
     public static void main(String[] args) throws Exception {
 
         Static.initRootLoggers();
@@ -66,9 +74,6 @@ public class Schedule {
         int nSymbols = statisticsList.size();
         log.info( "Succesfully received " + nSymbols + " symbols");
 
-        /* TODO
-
-        List<RateLimit> rateLimits = exchangeInfo.getRateLimits(); */
         SymbolPredicate symbolPredicate = new SymbolPredicate( exchangeInfo );
         log.info( "Filtering symbols based on exchange information, under the following predicate: " + symbolPredicate);
         statisticsList.removeIf(symbolPredicate);
@@ -102,22 +107,22 @@ public class Schedule {
 
         /* Instantiate the services */
         log.info( "Initialising services.." );
-        log.info( "Instantiating AccountManager service...");
-        AccountManager accountManager = AccountManager.getInstance();
-        AssetManager assetManager = new AssetManager();
+        log.info( "Instantiating HeartBeat service...");
+        HeartBeat heartBeat = HeartBeat.getInstance();
+        AccountManager accountManager = new AccountManager();
+        log.info( "HeartBeat service instantiated");
         log.info( "AccountManager service instantiated");
-        log.info( "AssetManager service instantiated");
 
         /* Schedule execution of the services */
         int keepaliveInterval = 29, keepaliveDelay = 29, accountDelay = 1, nServices = 3;
         log.info( "Scheduling execution of services..." );
         ScheduledExecutorService executorService = Executors.newScheduledThreadPool( nServices );
         log.info( "Successfully scheduled KeepAlive service");
-        log.info( "Executing AccountManager at rate of " + ACCOUNT_MANAGER_INTERVAL + " minute(s), with initial delay of " + accountDelay + " minute(s)"  );
-        executorService.scheduleAtFixedRate( accountManager::maintenance, accountDelay, ACCOUNT_MANAGER_INTERVAL, TimeUnit.MINUTES);
+        log.info( "Executing HeartBeat at rate of " + ACCOUNT_MANAGER_INTERVAL + " minute(s), with initial delay of " + accountDelay + " minute(s)"  );
+        executorService.scheduleAtFixedRate( heartBeat::maintenance, accountDelay, ACCOUNT_MANAGER_INTERVAL, TimeUnit.MINUTES);
+        log.info( "Successfully scheduled HeartBeat service");
+        executorService.submit( accountManager::maintain );
         log.info( "Successfully scheduled AccountManager service");
-        executorService.submit( assetManager::maintain );
-        log.info( "Successfully scheduled AssetManager service");
 
         log.info( "Finished selecting symbols. Joining child threads...." );
 

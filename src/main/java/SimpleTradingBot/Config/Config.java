@@ -1,7 +1,6 @@
 package SimpleTradingBot.Config;
 import SimpleTradingBot.Rules.IRule;
 import SimpleTradingBot.Rules.SMACross;
-import SimpleTradingBot.Models.QueueMessage;
 import SimpleTradingBot.Util.TestLevel;
 import com.binance.api.client.constant.BinanceApiConstants;
 import com.binance.api.client.domain.market.CandlestickInterval;
@@ -12,9 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.concurrent.PriorityBlockingQueue;
 
 
 public class Config {
@@ -31,9 +28,11 @@ public class Config {
 
     final public static boolean FORCE_ORDER = true;
 
-    final public static boolean FORCE_CLOSE = false;
+    final public static boolean FORCE_CLOSE = true;
 
     final public static int MAX_ERR = 30;
+
+    final public static int HB_TOLERANCE = 60000;
 
     final public static ZoneId ZONE_ID = ZoneId.systemDefault();
 
@@ -55,7 +54,7 @@ public class Config {
 
     final public static double minVolume = 10000;
 
-    public static int MAX_SYMBOLS = 1;
+    public static int MAX_SYMBOLS = 5;
 
     public static final boolean SHOULD_LOG_TA = true;
 
@@ -79,9 +78,7 @@ public class Config {
 
     final public static int MAX_BAR_COUNT = 500;
 
-    final public static int coolDown = 40; //whatever period you are trading in
-
-    final public static HashMap<String, Double> qtyMap = new HashMap<>(); //not in use
+    final public static int COOL_DOWN = 5;
 
     final public static String OUT_DIR = "out-" + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + "/";
 
@@ -113,9 +110,8 @@ public class Config {
                 .append("trailing_loss: " + TRAILING_STOP + "\n")
                 .append("take_profit: " + takeProfit + "\n")
                 .append("test_level: " + TEST_LEVEL + "\n")
-                .append("cool_down: " + coolDown + "\n")
-                .append("out_dir: " + OUT_DIR + "\n")
-                .append("Quantity map: " + qtyMap + "\n");
+                .append("cool_down: " + COOL_DOWN + "\n")
+                .append("out_dir: " + OUT_DIR + "\n");
         return sb.toString();
     }
 }
