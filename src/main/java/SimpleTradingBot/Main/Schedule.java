@@ -1,23 +1,17 @@
 package SimpleTradingBot.Main;
 
 import SimpleTradingBot.Config.Config;
-import SimpleTradingBot.Controller.Controller;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Models.FilterConstraints;
-import SimpleTradingBot.Services.AccountManager;
-import SimpleTradingBot.Services.HeartBeat;
 import SimpleTradingBot.Util.*;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.general.*;
 import com.binance.api.client.domain.market.TickerStatistics;
 
 import java.util.List;
-import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 import static SimpleTradingBot.Config.Config.MAX_TIME_SYNC;
-import static SimpleTradingBot.Config.Config.ACCOUNT_MANAGER_INTERVAL;
-import static SimpleTradingBot.Config.Config.MAX_SYMBOLS;
 
 public class Schedule {
 
@@ -27,12 +21,12 @@ public class Schedule {
      * 3. Rate limits
      * 4. Commission constraints
      * 5. CandleStick Interval toId/toMillils
-     * 6. PositionState Visibility
+     * 6. Phase Visibility
      *
      */
     public static void main(String[] args) throws Exception {
 
-        Static.initRootLoggers();
+        Static.init();
 
         Logger log = Logger.getLogger( "root" );
         log.entering("Schedule","main");
@@ -79,41 +73,41 @@ public class Schedule {
         statisticsList.removeIf(symbolPredicate);
         log.info( "Filtering successful. " + statisticsList.size() + " symbols remaining");
 
-        log.info( "Removing duplicate assets..." );
+        /* log.info( "Removing duplicate assets..." );
         SymbolPredicate.removeDuplicateQuotes( statisticsList );
         nSymbols = statisticsList.size();
-        log.info( "Removed duplicates. " + nSymbols + " symbols remaining" );
+        log.info( "Removed duplicates. " + nSymbols + " symbols remaining" ); */
 
-        if ( nSymbols > MAX_SYMBOLS ) {
+        /*if ( nSymbols > MAX_SYMBOLS ) {
 
             SymbolComparator comparator = new SymbolComparator();
             log.info( "Sorting symbols under the following comparator: " + comparator );
             statisticsList.sort( new SymbolComparator() );
             log.info("Sorting complete. Selecting first " + MAX_SYMBOLS + " symbols.");
             statisticsList = statisticsList.subList(0, MAX_SYMBOLS);
-        }
+        } */
 
         log.info( "Creating symbol constraints...");
         Static.constraints = FilterConstraints.getConstraints( exchangeInfo, statisticsList );
         log.info("Successfully retrieved symbol constraints" );
 
-        for ( TickerStatistics statistics : statisticsList ) {
+       /* for ( TickerStatistics statistics : statisticsList ) {
             String symbol = statistics.getSymbol();
             log.info( "Beginning live stream of symbol" + symbol);
             Controller controller = new Controller( statistics );
             controller.liveStream();
-        }
+        } */
 
 
-        /* Instantiate the services */
+        /*Instantiate the services
         log.info( "Initialising services.." );
         log.info( "Instantiating HeartBeat service...");
         HeartBeat heartBeat = HeartBeat.getInstance();
         AccountManager accountManager = new AccountManager();
         log.info( "HeartBeat service instantiated");
-        log.info( "AccountManager service instantiated");
+        log.info( "AccountManager service instantiated"); */
 
-        /* Schedule execution of the services */
+        /* Schedule execution of the services
         int keepaliveInterval = 29, keepaliveDelay = 29, accountDelay = 1, nServices = 3;
         log.info( "Scheduling execution of services..." );
         ScheduledExecutorService executorService = Executors.newScheduledThreadPool( nServices );
@@ -124,13 +118,18 @@ public class Schedule {
         executorService.submit( accountManager::maintain );
         log.info( "Successfully scheduled AccountManager service");
 
-        log.info( "Finished selecting symbols. Joining child threads...." );
+        /*log.info( "Finished selecting symbols. Joining child threads...." );
 
         parentThread.join();
 
         log.info( "All child threads joined or terminated. Exiting program");
 
-        /* Print aggregates */
-        log.exiting("Schedule", "main");
+        /* Print aggregates
+        log.exiting("Schedule", "main"); */
+
+
+
+        /* Start the server */
+
     }
 }

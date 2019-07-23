@@ -17,9 +17,9 @@ public class TrailingStop {
 
     private Logger log;
 
-    public TrailingStop(TickerStatistics symbol) {
+    public TrailingStop( String symbol) {
         String loggerName = this.getClass().getSimpleName();
-        this.log = Logger.getLogger("root." + symbol.getSymbol() + "." + loggerName);
+        this.log = Logger.getLogger("root." + symbol + "." + loggerName);
         this.stopLoss = BigDecimal.ZERO;
     }
 
@@ -39,7 +39,7 @@ public class TrailingStop {
     }
 
     public void update( Bar bar ) {
-        update( new BigDecimal( bar.getClosePrice().toString() ) );
+        update( (BigDecimal) bar.getClosePrice().getDelegate() );
     }
 
     public void update( BigDecimal lastPrice ) throws BinanceApiException {

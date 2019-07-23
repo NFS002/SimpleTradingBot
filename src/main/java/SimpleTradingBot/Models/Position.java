@@ -7,9 +7,13 @@ import com.binance.api.client.domain.account.NewOrderResponse;
 import com.binance.api.client.domain.account.Order;
 import com.binance.api.client.exception.BinanceApiException;
 
+import java.math.BigDecimal;
+
 import static SimpleTradingBot.Config.Config.MAX_ORDER_UPDATES;
 
 public class Position {
+
+    private final BigDecimal price;
 
     private final NewOrder originalOrder;
 
@@ -19,7 +23,8 @@ public class Position {
 
     private int nUpdate;
 
-    public Position(NewOrder originalOrder, NewOrderResponse originalOrderResponse) {
+    public Position(NewOrder originalOrder, NewOrderResponse originalOrderResponse, BigDecimal price ) {
+        this.price = price;
         this.originalOrder = originalOrder;
         this.originalOrderResponse = originalOrderResponse;
         this.nUpdate = 0;
@@ -28,24 +33,30 @@ public class Position {
 
     public void setUpdatedOrder( Order updatedOrder ) throws STBException {
 
-        if (nUpdate < MAX_ORDER_UPDATES - 1 )
-            this.updatedOrders[ nUpdate++ ] = updatedOrder;
-        else
+        try {
+            this.updatedOrders[ nUpdate ] = updatedOrder;
+            nUpdate++;
+        }
+        catch ( IndexOutOfBoundsException e ) {
             throw new STBException( 90 );
+        }
     }
 
-    public Order getLastUpdate() throws STBException {
+    public Order getLastUpdate()  {
         for ( int i = updatedOrders.length - 1; i >= 0; i-- ) {
             Order update = this.updatedOrders[i];
             if ( update != null )
                 return update;
         }
-
-        throw new STBException( 100 );
+        return null;
     }
 
     public NewOrder getOriginalOrder() {
         return originalOrder;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
     }
 
     public NewOrderResponse getOriginalOrderResponse() {

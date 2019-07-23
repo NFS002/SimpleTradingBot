@@ -1,5 +1,6 @@
 package SimpleTradingBot.Models;
 
+import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Exception.STBException;
 import com.binance.api.client.domain.general.ExchangeInfo;
 import com.binance.api.client.domain.general.FilterType;
@@ -15,7 +16,9 @@ import java.util.Optional;
 
 public class FilterConstraints {
 
-    public BigDecimal next_qty;
+    private static BigDecimal remainingQty;
+
+    private int MIN_WEIGHT;
 
     private final BigDecimal MIN_QTY;
 
@@ -31,7 +34,7 @@ public class FilterConstraints {
 
     private final String SYMBOL;
 
-    FilterConstraints( BigDecimal MIN_QTY, BigDecimal MAX_QTY, BigDecimal STEP, BigDecimal MIN_NOTIONAL, String BASE_ASSET, String QUOTE_ASSET, String SYMBOL ) {
+    private FilterConstraints( BigDecimal MIN_QTY, BigDecimal MAX_QTY, BigDecimal STEP, BigDecimal MIN_NOTIONAL, String BASE_ASSET, String QUOTE_ASSET, String SYMBOL ) {
         this.MIN_QTY = MIN_QTY;
         this.MAX_QTY = MAX_QTY;
         this.STEP = STEP;
@@ -39,7 +42,8 @@ public class FilterConstraints {
         this.BASE_ASSET = BASE_ASSET;
         this.QUOTE_ASSET = QUOTE_ASSET;
         this.SYMBOL = SYMBOL;
-        this.next_qty = null;
+        this.MIN_WEIGHT = Config.MAX_WEIGHT;
+        remainingQty = null;
     }
 
     public BigDecimal getMIN_QTY() {
@@ -54,8 +58,16 @@ public class FilterConstraints {
         return STEP;
     }
 
-    public BigDecimal getNext_qty() {
-        return next_qty;
+    public int getMIN_WEIGHT() {
+        return MIN_WEIGHT;
+    }
+
+    public void setMIN_WEIGHT(int MIN_WEIGHT) {
+        this.MIN_WEIGHT = MIN_WEIGHT;
+    }
+
+    public static BigDecimal getRemainingQty() {
+        return remainingQty;
     }
 
     public BigDecimal getMIN_NOTIONAL() {
@@ -74,8 +86,8 @@ public class FilterConstraints {
         return SYMBOL;
     }
 
-    public void setNext_qty(BigDecimal next_qty) {
-        this.next_qty = next_qty;
+    public static void setRemainingQty( BigDecimal remainingQty ) {
+        FilterConstraints.remainingQty = remainingQty;
     }
 
     public BigDecimal adjustQty(BigDecimal proposedQty ) {
@@ -85,7 +97,7 @@ public class FilterConstraints {
             return this.MAX_QTY;
         else {
             BigDecimal adjusted = this.MIN_QTY;
-            while ( adjusted.compareTo(proposedQty) < 1 )
+            while ( adjusted.compareTo( proposedQty ) < 1 )
                 adjusted = adjusted.add(this.STEP);
             return adjusted.subtract(this.STEP);
         }

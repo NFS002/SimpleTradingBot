@@ -29,17 +29,16 @@ public class SymbolPredicate implements java.util.function.Predicate<TickerStati
         /* Symbol Status */
         SymbolInfo info = this.exchangeInfo.getSymbolInfo( symbol );
         SymbolStatus symbolStatus = info.getStatus();
-        if (symbolStatus != SymbolStatus.TRADING)
-            return false;
+        return symbolStatus == SymbolStatus.TRADING;
 
-        /* Base Asset */
+        /* Base Asset
         String quote = Static.getQuoteFromSymbol( symbol );
         if ( ! quote.equals( Config.BASE_ASSET ) )
-            return false;
+            return false; */
 
-        /* Order types */
+        /* Order types
         List<OrderType> orderTypes = info.getOrderTypes();
-        return !orderTypes.contains( OrderType.MARKET );
+        return !orderTypes.contains( OrderType.MARKET ); */
 
     }
 

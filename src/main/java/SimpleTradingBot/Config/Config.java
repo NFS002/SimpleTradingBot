@@ -3,6 +3,7 @@ import SimpleTradingBot.Rules.IRule;
 import SimpleTradingBot.Rules.SMACross;
 import SimpleTradingBot.Util.TestLevel;
 import com.binance.api.client.constant.BinanceApiConstants;
+import com.binance.api.client.domain.OrderType;
 import com.binance.api.client.domain.market.CandlestickInterval;
 
 import java.io.File;
@@ -18,13 +19,23 @@ public class Config {
 
     final public static int MAX_ORDER_UPDATES = 10;
 
+    final public static int MAX_WEIGHT = 100;
+
+    final public static int MIN_ACCEPTED_WEIGHT = 5;
+
     final public static int INTERVAL_TOLERANCE = 5000;
 
     final public static int MAX_ORDER_RETRY = 5;
 
+    final public static int ORDER_WEIGHT_THRESH = 5;
+
+    final public static int MAX_QUEUE_RETRY = 10;
+
     final public static int ACCOUNT_MANAGER_INTERVAL = 1;
 
     final public static long MIN_VOLUME = 10000;
+
+    final public static int DEFAULT_PORT = 5000;
 
     final public static boolean FORCE_ORDER = true;
 
@@ -32,7 +43,22 @@ public class Config {
 
     final public static int MAX_ERR = 30;
 
+    /* 1 Minute */
+    final public static long SIGNAL_TTL = 60000;
+
     final public static int HB_TOLERANCE = 60000;
+
+    final public static boolean SHOULD_AUTH = false;
+
+    final public static String AUTH_HEADER_KEY = "X-STB-KEY";
+
+    final public static String AUTH_HEADER_VALUE = "X-STB-VALUE";
+
+    final public static OrderType DEFAULT_ORDER_TYPE = OrderType.MARKET;
+
+    final public static String[] KNOWN_SOURCES = {"STB", "TV", "MH"};
+
+    final public static String[] KNOWN_TYPES = {"SMA", "MACD", "CLOUD", "STOCH", "VWA", "RSI" };
 
     final public static ZoneId ZONE_ID = ZoneId.systemDefault();
 

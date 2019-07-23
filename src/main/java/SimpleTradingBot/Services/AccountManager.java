@@ -4,9 +4,7 @@ package SimpleTradingBot.Services;
 import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Models.FilterConstraints;
 import SimpleTradingBot.Models.QueueMessage;
-import SimpleTradingBot.Util.Handler;
 import SimpleTradingBot.Util.Static;
-import SimpleTradingBot.Util.TestLevel;
 import com.binance.api.client.BinanceApiCallback;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.BinanceApiWebSocketClient;
@@ -16,14 +14,12 @@ import com.binance.api.client.domain.event.AccountUpdateEvent;
 import com.binance.api.client.domain.event.UserDataUpdateEvent;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 import static  com.binance.api.client.domain.event.UserDataUpdateEvent.UserDataUpdateEventType.ACCOUNT_UPDATE;
+import static java.lang.Enum.valueOf;
 
 public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
 
@@ -36,6 +32,15 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
     private final long updateFrequency;
 
     private final Logger log;
+
+    private static AccountManager instance;
+
+
+    public static AccountManager getInstance() {
+        if ( instance == null )
+            instance = new AccountManager();
+        return instance;
+    }
 
 
     public AccountManager() {
@@ -50,39 +55,19 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
         Account account = restClient.getAccount( Config.RECV_WINDOW, timeStamp );
         String base = Config.BASE_ASSET;
         AssetBalance b = account.getAssetBalance( base );
-        setBalances( b.getFree() );
         webSocketClient.onUserDataUpdateEvent( this.listenKey, this );
 
     }
 
-    private void setBalances( String remainingStr ) {
-        this.log.entering( this.getClass().getSimpleName(), "setBalances" );
-        log.info( "Setting balances with remaining balance of: " + remainingStr + " " + Config.BASE_ASSET);
-        HashMap<String, FilterConstraints> constraints = Static.constraints;
-        BigDecimal size = BigDecimal.valueOf( constraints.size() );
-        BigDecimal remaining = new BigDecimal( remainingStr );
-        BigDecimal each;
-        if ( remaining.compareTo(BigDecimal.ZERO) < 1 )
-            each = BigDecimal.ZERO;
-        else
-            each = size.divide( remaining, RoundingMode.HALF_DOWN );
+
+    private void setRemainingQty( String remainingStr ) {
+        this.log.entering( this.getClass().getSimpleName(), "setRemainingQty" );
+        BigDecimal available = new BigDecimal( remainingStr );
         BigDecimal max = BigDecimal.valueOf( Config.MAX_BUDGET_PER_TRADE );
-
-        for ( FilterConstraints constraint : constraints.values() ) {
-
-            if (Config.TEST_LEVEL == TestLevel.REAL) {
-                BigDecimal nxtQty = each.compareTo( max ) > 0 ? max : each;
-                log.info("Setting next quantity of " + nxtQty + " for constraint " + constraint.getSYMBOL());
-                constraint.setNext_qty(nxtQty);
-            }
-            else {
-                log.info("Setting next quantity of " + max + " for constraint " + constraint.getSYMBOL());
-                constraint.setNext_qty(max);
-            }
-
-        }
-
-        this.log.exiting( this.getClass().getSimpleName(), "setBalances" );
+        BigDecimal actual = available.compareTo( max ) > 0 ? available : max;
+        FilterConstraints.setRemainingQty( actual );
+        this.log.info( "Setting remaining balance of: " + actual + " " + Config.BASE_ASSET);
+        this.log.exiting( this.getClass().getSimpleName(), "setRemainingQty" );
 
     }
 
@@ -98,7 +83,7 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
             if ( optAssetBalance.isPresent() ) {
                 AssetBalance assetBalance = optAssetBalance.get();
                 log.info( assetBalance.toString() );
-                setBalances( assetBalance.getFree() );
+                setRemainingQty( assetBalance.getFree() );
             }
         }
 
@@ -137,13 +122,14 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
         while ( true ) {
             try {
                 this.log.info( "Performing maintenance" );
+
                 if ( Static.constraints.isEmpty() )
                     close();
 
                 else if ( shouldUpdate() )
                     this.update();
                 Thread.sleep( this.updateFrequency );
-                QueueMessage message = Static.EXIT_QUEUE.poll();
+                QueueMessage message = Static.checkExit( "*" );
                 if ( message != null ) {
                     this.log.info( "Received message from exit queue ");
                     close();
@@ -154,7 +140,7 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
                 this.log.log( Level.SEVERE, e.getMessage(), e);
                 this.log.severe( "Sending message to exit queue");
                 QueueMessage message = new QueueMessage(QueueMessage.Type.INTERRUPT, "*");
-                Static.EXIT_QUEUE.offer( message );
+                Static.getExitQueue().offer( message );
                 close();
                 break;
             }

@@ -1,5 +1,6 @@
 package SimpleTradingBot.Models;
 
+import SimpleTradingBot.Controller.Controller;
 import SimpleTradingBot.Util.Static;
 import com.binance.api.client.domain.account.NewOrder;
 import com.binance.api.client.domain.account.NewOrderResponse;
@@ -10,24 +11,77 @@ import java.time.Duration;
 
 public class RoundTrip {
 
-    /* For market orders */
-    private final BigDecimal openPrice;
-
-    /* For market orders */
-    private final BigDecimal closePrice;
 
     private final Position buyPosition;
 
-    private final Position sellPosition;
+    private Position sellPosition;
 
-    public RoundTrip(BigDecimal openPrice, BigDecimal closePrice,
-                     Position buyPosition, Position sellPosition) {
-        this.openPrice = openPrice;
-        this.closePrice = closePrice;
+    private Controller controller;
+
+    private long completedAt;
+
+    private long interruptedAt;
+
+    private Phase phase;
+
+    public RoundTrip( Position buyPosition, Position sellPosition, Controller controller, Phase phase ) {
+        this.controller = controller;
         this.buyPosition = buyPosition;
         this.sellPosition = sellPosition;
+        this.completedAt = ( sellPosition == null ) ? -1: System.currentTimeMillis();
+        this.interruptedAt = -1;
+        this.phase = phase;
     }
 
+    public RoundTrip( Position buyPosition, Controller controller ) {
+        this( buyPosition, null, controller, Phase.BUY );
+    }
+
+
+    public RoundTrip( Position buyPosition ) {
+        this( buyPosition, null,  null, Phase.BUY );
+    }
+
+    public void setSellPosition(Position sellPosition ) {
+        this.sellPosition = sellPosition;
+        this.completedAt = System.currentTimeMillis();
+    }
+
+    public Phase getPhase() {
+        return phase;
+    }
+
+    public void setPhase(Phase phase) {
+        this.phase = phase;
+    }
+
+    public long getInterruptedAt() {
+        return interruptedAt;
+    }
+
+    public void setInterruptedAt( long interruptedAt ) {
+        this.interruptedAt = interruptedAt;
+    }
+
+    public Controller getController() {
+        return controller;
+    }
+
+    public void setController(Controller controller) {
+        this.controller = controller;
+    }
+
+    public Position getBuyPosition() {
+        return buyPosition;
+    }
+
+    public Position getSellPosition() {
+        return sellPosition;
+    }
+
+    public long getCompletedAt() {
+        return this.completedAt;
+    }
 
     public String getStats() {
 
@@ -40,14 +94,17 @@ public class RoundTrip {
         NewOrder originalSell = this.sellPosition.getOriginalOrder();
         NewOrderResponse originalSellResponse = this.sellPosition.getOriginalOrderResponse();
 
+        BigDecimal openPrice = this.buyPosition.getPrice();
+        BigDecimal closePrice = this.sellPosition.getPrice();
+
         long sellId = originalSellResponse.getOrderId();
         long closeTime = originalSell.getTimestamp();
 
-        BigDecimal gain = (this.openPrice.subtract( this.closePrice )).divide( openPrice, RoundingMode.HALF_UP );
+        BigDecimal gain = ( openPrice.subtract( closePrice )).divide( openPrice, RoundingMode.HALF_UP );
 
         int length = 5;
-        String openStr = Static.safeDecimal( this.openPrice, length );
-        String closeStr = Static.safeDecimal( this.closePrice, length );
+        String openStr = Static.safeDecimal( openPrice, length );
+        String closeStr = Static.safeDecimal( closePrice, length );
         String gainStr = Static.safeDecimal( gain, length );
 
 

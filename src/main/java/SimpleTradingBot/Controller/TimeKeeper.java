@@ -6,7 +6,6 @@ import SimpleTradingBot.Util.Static;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.event.CandlestickEvent;
 import com.binance.api.client.domain.market.CandlestickInterval;
-import com.binance.api.client.domain.market.TickerStatistics;
 import org.ta4j.core.Bar;
 
 import java.time.Instant;
@@ -23,7 +22,9 @@ public class TimeKeeper {
     /* For checking server time to make sure we are in sync */
     private final BinanceApiRestClient client;
 
-    private long lastTimeDifference;
+    private final String symbol;
+
+    private long initialTimeDifference;
 
     private final Logger log;
 
@@ -35,8 +36,9 @@ public class TimeKeeper {
 
     private long endStreamTime;
 
-    public TimeKeeper(TickerStatistics statistics) throws STBException {
-        this.log = Logger.getLogger("root." + statistics.getSymbol());
+    public TimeKeeper( String symbol ) throws STBException {
+        this.symbol = symbol;
+        this.log = Logger.getLogger("root." + symbol );
         this.client = Static.getFactory().newRestClient();
         this.nServerChecks = 0;
         this.startStreamTime = this.endStreamTime = 0;
@@ -60,31 +62,39 @@ public class TimeKeeper {
 
     /* Check we are in sync with the binance server system time */
     public void updateServerTime() throws STBException {
+        this.log.entering( this.getClass().getSimpleName(), "updateServerTime");
         long serverTime = client.getServerTime();
         long clientTime = System.currentTimeMillis();
+
         if (this.nServerChecks++ == 0) {
-            this.lastTimeDifference = serverTime - clientTime;
-        } else {
+            this.initialTimeDifference = serverTime - clientTime;
+            this.log.info( "Initial time difference: " + this.initialTimeDifference);
+            checkServerTime();
+        }
+
+        else {
             long diff = serverTime - clientTime;
-            long ddiff = Math.abs(this.lastTimeDifference - diff);
+            long ddiff = Math.abs(this.initialTimeDifference - diff);
             if (ddiff > Config.MAX_DDIFF) {
-                log.severe("Change in time difference: " + ddiff + " exceeds maximum of " + Config.MAX_DDIFF );
+                this.log.severe("Change in time difference: " + ddiff + " exceeds maximum of " + Config.MAX_DDIFF );
                 throw new STBException( 150 );
             }
         }
-        checkServerTime();
+
+        this.log.exiting( this.getClass().getSimpleName(), "updateServerTime");
+
 
     }
 
     /* Check we are in sync with the binance server system time (Internal) */
     private void checkServerTime() throws STBException{
         log.entering(this.getClass().getSimpleName(), "checkServerTime");
-        if ( this.lastTimeDifference > Config.RECV_WINDOW ) {
-            log.severe("Server time difference of " + this.lastTimeDifference + " exceeds maximum of " + Config.RECV_WINDOW + ". Checks made: " + nServerChecks);
+        if ( this.initialTimeDifference > Config.RECV_WINDOW ) {
+            log.severe("Server time difference of " + this.initialTimeDifference + " exceeds maximum of " + Config.RECV_WINDOW + ". Checks made: " + nServerChecks);
             throw new STBException( 110 );
         }
         else {
-            log.info("Server time difference: " + lastTimeDifference);
+            log.info("Server time difference: " + initialTimeDifference);
         }
         log.exiting(this.getClass().getSimpleName(), "checkServerTime");
     }
@@ -147,10 +157,10 @@ public class TimeKeeper {
         log.info("Current system time: " + myTime);
         long diff = Math.abs(eventTime - myTime);
         if (diff > Config.RECV_WINDOW) {
-            log.severe("Event time difference of " + lastTimeDifference + " exceeds maximum of " + Config.RECV_WINDOW);
+            log.severe("Event time difference of " + initialTimeDifference + " exceeds maximum of " + Config.RECV_WINDOW);
             throw new STBException( 160 );
         } else
-            log.info("Event time difference: " + lastTimeDifference);
+            log.info("Event time difference: " + initialTimeDifference);
 
         log.exiting(this.getClass().getSimpleName(), "checkEventTime");
     }

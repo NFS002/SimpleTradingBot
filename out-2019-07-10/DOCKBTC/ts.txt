@@ -1,4 +1,0 @@
-TIME				CLOSE				POS				
-19:17				0.00000101			PositionState[ maintained=false, outdated=false, phase=CLEAR, flags=NONE]			
-19:18				0.00000101			PositionState[ maintained=false, outdated=false, phase=CLEAR, flags=NONE]			
-19:19				0.00000100			PositionState[ maintained=false, outdated=false, phase=CLEAR, flags=NONE]			

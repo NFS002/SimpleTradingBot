@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE log SYSTEM "logger.dtd">
+<log>
+<record>
+  <date>2019-07-22T21:36:58.541706Z</date>
+  <millis>1563831418541</millis>
+  <nanos>706000</nanos>
+  <sequence>0</sequence>
+  <logger>root.Server</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>serve</method>
+  <thread>1</thread>
+  <message>Started server listening at port 5000</message>
+</record>
+<record>
+  <date>2019-07-22T21:37:16.968791Z</date>
+  <millis>1563831436968</millis>
+  <nanos>791000</nanos>
+  <sequence>1</sequence>
+  <logger>root.Server</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>lambda$serve$8c24113b$1</method>
+  <thread>28</thread>
+  <message>Handling new request</message>
+</record>
+<record>
+  <date>2019-07-22T21:37:17.008255Z</date>
+  <millis>1563831437008</millis>
+  <nanos>255000</nanos>
+  <sequence>2</sequence>
+  <logger>root.Server</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>lambda$serve$8c24113b$1</method>
+  <thread>28</thread>
+  <message>Serialised new signal: Signal[symbol=XTCXTC, source=STB, type=MACD, weight=60, price=null, created=0]</message>
+</record>
+<record>
+  <date>2019-07-22T21:37:17.008692Z</date>
+  <millis>1563831437008</millis>
+  <nanos>692000</nanos>
+  <sequence>3</sequence>
+  <logger>root.Server</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>handle</method>
+  <thread>28</thread>
+  <message>Handling signal: Signal[symbol=XTCXTC, source=STB, type=MACD, weight=60, price=null, created=0]</message>
+</record>
+<record>
+  <date>2019-07-22T21:37:17.012822Z</date>
+  <millis>1563831437012</millis>
+  <nanos>822000</nanos>
+  <sequence>4</sequence>
+  <logger>root.Server</logger>
+  <level>WARNING</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>handle</method>
+  <thread>28</thread>
+  <message>Signal expired: 1563831437009</message>
+</record>
+<record>
+  <date>2019-07-22T21:37:53.996215Z</date>
+  <millis>1563831473996</millis>
+  <nanos>215000</nanos>
+  <sequence>5</sequence>
+  <logger>root.Server</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>lambda$serve$8c24113b$1</method>
+  <thread>29</thread>
+  <message>Handling new request</message>
+</record>
+<record>
+  <date>2019-07-22T21:37:53.998655Z</date>
+  <millis>1563831473998</millis>
+  <nanos>655000</nanos>
+  <sequence>6</sequence>
+  <logger>root.Server</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>lambda$serve$8c24113b$1</method>
+  <thread>29</thread>
+  <message>Serialised new signal: Signal[symbol=XTCXTC, source=STB, type=MACD, weight=60, price=null, created=1563831321861]</message>
+</record>
+<record>
+  <date>2019-07-22T21:37:53.999212Z</date>
+  <millis>1563831473999</millis>
+  <nanos>212000</nanos>
+  <sequence>7</sequence>
+  <logger>root.Server</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>handle</method>
+  <thread>29</thread>
+  <message>Handling signal: Signal[symbol=XTCXTC, source=STB, type=MACD, weight=60, price=null, created=1563831321861]</message>
+</record>
+<record>
+  <date>2019-07-22T21:37:53.999612Z</date>
+  <millis>1563831473999</millis>
+  <nanos>612000</nanos>
+  <sequence>8</sequence>
+  <logger>root.Server</logger>
+  <level>WARNING</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>handle</method>
+  <thread>29</thread>
+  <message>Signal expired: 152138</message>
+</record>
+<record>
+  <date>2019-07-22T21:38:23.047498Z</date>
+  <millis>1563831503047</millis>
+  <nanos>498000</nanos>
+  <sequence>9</sequence>
+  <logger>root.Server</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>lambda$serve$8c24113b$1</method>
+  <thread>30</thread>
+  <message>Handling new request</message>
+</record>
+<record>
+  <date>2019-07-22T21:38:23.048191Z</date>
+  <millis>1563831503048</millis>
+  <nanos>191000</nanos>
+  <sequence>10</sequence>
+  <logger>root.Server</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>lambda$serve$8c24113b$1</method>
+  <thread>30</thread>
+  <message>Serialised new signal: Signal[symbol=XTCXTC, source=STB, type=MACD, weight=60, price=null, created=1563831321861]</message>
+</record>
+<record>
+  <date>2019-07-22T21:38:23.048531Z</date>
+  <millis>1563831503048</millis>
+  <nanos>531000</nanos>
+  <sequence>11</sequence>
+  <logger>root.Server</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>handle</method>
+  <thread>30</thread>
+  <message>Handling signal: Signal[symbol=XTCXTC, source=STB, type=MACD, weight=60, price=null, created=1563831321861]</message>
+</record>
+<record>
+  <date>2019-07-22T21:38:23.048836Z</date>
+  <millis>1563831503048</millis>
+  <nanos>836000</nanos>
+  <sequence>12</sequence>
+  <logger>root.Server</logger>
+  <level>WARNING</level>
+  <class>SimpleTradingBot.Server.Server</class>
+  <method>handle</method>
+  <thread>30</thread>
+  <message>Signal expired: 181187</message>
+</record>
+</log>
