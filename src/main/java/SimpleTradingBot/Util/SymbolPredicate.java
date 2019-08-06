@@ -34,7 +34,7 @@ public class SymbolPredicate implements java.util.function.Predicate<TickerStati
 
         /* Base Asset */
         String quote = Static.getQuoteFromSymbol( symbol );
-        if ( ! quote.equals( Config.BASE_ASSET ) )
+        if ( ! quote.equals( Config.QUOTE_ASSET) )
             return false;
 
         /* Order types */

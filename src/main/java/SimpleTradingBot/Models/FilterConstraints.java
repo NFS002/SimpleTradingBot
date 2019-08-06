@@ -6,7 +6,6 @@ import com.binance.api.client.domain.general.FilterType;
 import com.binance.api.client.domain.general.SymbolFilter;
 import com.binance.api.client.domain.general.SymbolInfo;
 import com.binance.api.client.domain.market.TickerStatistics;
-import com.binance.api.client.exception.BinanceApiException;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -14,8 +13,6 @@ import java.util.List;
 import java.util.Optional;
 
 public class FilterConstraints {
-
-    public BigDecimal next_qty;
 
     private final BigDecimal MIN_QTY;
 
@@ -29,9 +26,13 @@ public class FilterConstraints {
 
     private final String QUOTE_ASSET;
 
+    private final int BASE_PRECISION;
+
+
     private final String SYMBOL;
 
-    FilterConstraints( BigDecimal MIN_QTY, BigDecimal MAX_QTY, BigDecimal STEP, BigDecimal MIN_NOTIONAL, String BASE_ASSET, String QUOTE_ASSET, String SYMBOL ) {
+    FilterConstraints( BigDecimal MIN_QTY, BigDecimal MAX_QTY, BigDecimal STEP, BigDecimal MIN_NOTIONAL, String BASE_ASSET, String QUOTE_ASSET, String SYMBOL,
+                       int BASE_PRECISION ) {
         this.MIN_QTY = MIN_QTY;
         this.MAX_QTY = MAX_QTY;
         this.STEP = STEP;
@@ -39,7 +40,8 @@ public class FilterConstraints {
         this.BASE_ASSET = BASE_ASSET;
         this.QUOTE_ASSET = QUOTE_ASSET;
         this.SYMBOL = SYMBOL;
-        this.next_qty = null;
+        this.BASE_PRECISION = BASE_PRECISION;
+
     }
 
     public BigDecimal getMIN_QTY() {
@@ -54,12 +56,12 @@ public class FilterConstraints {
         return STEP;
     }
 
-    public BigDecimal getNext_qty() {
-        return next_qty;
-    }
-
     public BigDecimal getMIN_NOTIONAL() {
         return MIN_NOTIONAL;
+    }
+
+    public int getBASE_PRECISION() {
+        return BASE_PRECISION;
     }
 
     public String getBASE_ASSET() {
@@ -74,14 +76,10 @@ public class FilterConstraints {
         return SYMBOL;
     }
 
-    public void setNext_qty(BigDecimal next_qty) {
-        this.next_qty = next_qty;
-    }
-
-    public BigDecimal adjustQty(BigDecimal proposedQty ) {
+    public BigDecimal adjustQty( BigDecimal proposedQty ) {
         if ( proposedQty.compareTo( this.MIN_QTY  ) < 1 )
-            return null;
-        else if ( proposedQty.compareTo( this.MAX_QTY ) > 0 )
+            return this.MIN_QTY;
+        else if ( proposedQty.compareTo( this.MAX_QTY ) >= 0 )
             return this.MAX_QTY;
         else {
             BigDecimal adjusted = this.MIN_QTY;
@@ -101,6 +99,8 @@ public class FilterConstraints {
             SymbolInfo symbolInfo = exchangeInfo.getSymbolInfo( symbol );
             String quote = symbolInfo.getQuoteAsset();
             String base = symbolInfo.getBaseAsset();
+            int basePrecision = symbolInfo.getBaseAssetPrecision();
+
 
             Optional<SymbolFilter> mktLotFilterOpt = symbolInfo.getFilters().stream().filter(f -> f.getFilterType() == FilterType.MARKET_LOT_SIZE || f.getFilterType() == FilterType.LOT_SIZE ).findFirst();
             mktLotFilterOpt.orElseThrow( () -> new STBException( 40 ));
@@ -120,7 +120,7 @@ public class FilterConstraints {
             s = minNotFilter.getMinNotional();
             BigDecimal minNotional = new BigDecimal( s );
 
-            FilterConstraints filterConstraints = new FilterConstraints( minQty, maxQty, qtyStep, minNotional, base, quote, symbol);
+            FilterConstraints filterConstraints = new FilterConstraints( minQty, maxQty, qtyStep, minNotional, base, quote, symbol, basePrecision );
             constraintsMap.put( symbol, filterConstraints);
         }
 

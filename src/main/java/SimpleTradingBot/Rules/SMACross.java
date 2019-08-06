@@ -15,20 +15,38 @@ public class SMACross implements IRule {
 
     private int[] periods;
 
-    public SMACross(int p0, int p1, int ... periods) {
+    private String next;
 
+    @Override
+    public String getNext() {
+        return next;
+    }
+
+    public SMACross( int p0, int p1, int ... periods ) {
         int l = periods.length;
         this.periods = new int[l + 2];
         System.arraycopy(periods, 0, this.periods, 2, l);
         this.periods[0] = p0;
         this.periods[1] = p1;
+        getHeader( p0, p1, periods );
+    }
+
+    private void getHeader( int p0, int p1, int ... periods ) {
+        StringBuilder builder = new StringBuilder();
+        String name = getName();
+        builder.append( name ).append( p1 ).append(",");
+        builder.append( name ).append( p0 ).append(",");
+        for ( int p : periods )
+            builder.append( name ).append( p ).append(",");
+        this.next = builder.toString();
     }
 
     @Override
-    public Rule apply( TimeSeries timeSeries, int index, StringBuilder builder) {
+    public Rule apply( TimeSeries timeSeries, int index ) {
 
         int nT = this.periods.length;
         OverIndicatorRule[] rules = new OverIndicatorRule[ nT ];
+        StringBuilder builder = new StringBuilder();
 
         ClosePriceIndicator closePriceIndicator = new ClosePriceIndicator( timeSeries );
 
@@ -44,16 +62,16 @@ public class SMACross implements IRule {
             rules[i] = new OverIndicatorRule( sma, sma1 );
 
 
-            String smaV = Static.formatNum( sma.getValue( index ) );
-            builder.append( t ).append(": ").append(smaV).append("\t");
+            BigDecimal smaV = (BigDecimal) sma.getValue( index ).getDelegate();
+            builder.append( smaV.toPlainString() ).append(",");
 
             if ( i == nT - 2 ) {
-                String smaV1 = Static.formatNum(sma1.getValue(index));
-                builder.append(t2).append(": ").append(smaV1).append("\t");
+                BigDecimal smaV1 = (BigDecimal) sma1.getValue(index).getDelegate();
+                builder.append( smaV1.toPlainString() ).append(",");
             }
-
         }
 
+        this.next = builder.toString();
         Rule masterRule = rules[0];
 
         for (int i = 1; i < nT -1; i++ ) {

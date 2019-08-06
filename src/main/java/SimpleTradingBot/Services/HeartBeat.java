@@ -18,7 +18,8 @@ import org.ta4j.core.TimeSeries;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.time.Duration;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -26,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static SimpleTradingBot.Config.Config.OUT_DIR;
+import static SimpleTradingBot.Util.Static.OUT_DIR;
 import static SimpleTradingBot.Config.Config.MAX_ORDER_UPDATES;
 
 public class HeartBeat {
@@ -40,6 +41,8 @@ public class HeartBeat {
 
     private final OrderHistory orderHistory;
 
+    private BigDecimal netGain;
+
     private ArrayList<Controller> controllers;
 
     private Handler handler;
@@ -50,8 +53,12 @@ public class HeartBeat {
         this.handler = new SimpleTradingBot.Util.Handler( "am");
         this.log = Logger.getLogger( "root.am" );
         this.log.setUseParentHandlers( true );
+        this.netGain = BigDecimal.ZERO;
         try {
-            this.rtWriter = new PrintWriter(OUT_DIR + "rt.txt");
+            this.rtWriter = new PrintWriter(OUT_DIR + "rt.csv");
+            this.rtWriter.append("symbol,openPrice,openTime,buyId,nBuyUpdates," +
+                            "closePrice,closeTime,closeId,nSellUpdates," +
+                            "holdTime,gain,netGain\n").flush();
         }
         catch ( IOException e ) {
             this.log.severe( "Cant create necessary rt files. Skipping rt logging" );
@@ -122,18 +129,18 @@ public class HeartBeat {
         this.log.exiting( this.getClass().getName(), "shutdown" );
     }
 
-    public void logOrder( String symbol, RoundTrip roundTrip) {
+    public void logOrder( String symbol, RoundTrip roundTrip ) {
 
         ArrayList<RoundTrip> roundTrips = this.orderHistory.get(symbol);
 
         if (roundTrips == null)
             roundTrips = new ArrayList<>();
 
-        String stats = roundTrip.getStats();
-
+        BigDecimal gain = roundTrip.getGain();
+        this.netGain = this.netGain.add( gain, MathContext.DECIMAL64 );
         roundTrips.add( roundTrip );
         this.orderHistory.put( symbol, roundTrips );
-        appendRt( symbol, stats );
+        appendRt( symbol, roundTrip );
     }
 
     public void maintenance() {
@@ -200,7 +207,13 @@ public class HeartBeat {
             String symbol = summary.getSymbol();
             this.log.info( "Performing maintenance for symbol: " + symbol );
 
-            if ( !checkHearbeat( controller ) )
+            if ( controller.isPaused() ) {
+                this.log.info("Controller paused (" + symbol + "), skipping maintenance");
+                continue;
+            }
+
+
+            else if ( !checkHearbeat( controller ) )
                 continue;
 
             this.log.info( "Heartbeat passed for symbol: " + symbol + " .Continuing maintenance" );
@@ -234,7 +247,7 @@ public class HeartBeat {
                 if (sNull) {
                     /* These lines should never be executed
                      * If both positions are null then the state should never be outdated */
-                    log.severe( "Cycle: " + "CLEAR");
+                    log.severe( "Cycle: CLEAR");
                     controller.updateState(PositionState.Type.CLEAR, PositionState.Flags.NONE);
                 }
                 else
@@ -287,7 +300,6 @@ public class HeartBeat {
 
             switch (Config.TEST_LEVEL ) {
                 case FAKEORDER:
-                case NOORDER:
                     return PositionState.Flags.NONE;
                 case REAL:
                     return PositionState.Flags.UPDATE;
@@ -409,13 +421,25 @@ public class HeartBeat {
         return sellTimestamp > buyTimestamp;
     }
 
-    private void appendRt( String symbol, String rt ) {
+    private void appendRt( String symbol, RoundTrip rt ) {
         this.log.entering( this.getClass().getSimpleName(), "appendRt");
+
         if ( rtWriter != null ) {
             this.log.info( "Logging rt for symbol: " + symbol);
-            this.rtWriter.append(symbol).append(":\n");
-            this.rtWriter.append(rt).append("\n");
-            this.rtWriter.flush();
+            this.rtWriter
+                    .append(symbol).append( "," )
+                    .append( rt.getOpenPrice().toPlainString() ).append( "," )
+                    .append( String.valueOf( rt.getOpenTime() ) ).append( "," )
+                    .append( String.valueOf( rt.getBuyId() ) ).append( "," )
+                    .append( String.valueOf( rt.getnBuyUpdates()) ).append( "," )
+                    .append( rt.getClosePrice().toPlainString() ).append( "," )
+                    .append( String.valueOf( rt.getClosePrice() ) ).append( "," )
+                    .append( String.valueOf( rt.getSellId()) ).append( "," )
+                    .append( String.valueOf(rt.getnSellUpdates()) ).append( "," )
+                    .append( String.valueOf( rt.getHoldTime().getSeconds()) ).append(",")
+                    .append( rt.getGain().toPlainString() ).append( "," )
+                    .append( this.netGain.toPlainString() )
+                    .append("\n").flush();
         }
 
         this.log.exiting( this.getClass().getSimpleName(), "appendRt");

@@ -10,8 +10,17 @@ import SimpleTradingBot.Util.*;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.general.*;
 import com.binance.api.client.domain.market.TickerStatistics;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 
@@ -21,15 +30,22 @@ import static SimpleTradingBot.Config.Config.MAX_SYMBOLS;
 
 public class Schedule {
 
-    /* * TODO:
-     * 1. Plugins, Coin gossip
-     * 2. Num/BigDecimal/DecimalFormat
-     * 3. Rate limits
-     * 4. Commission constraints
-     * 5. CandleStick Interval toId/toMillils
-     * 6. PositionState Visibility
-     *
-     */
+    public static void setBudgets() throws Exception {
+        CloseableHttpClient client = HttpClients.createDefault();
+        HttpGet get = new HttpGet("https://api.coindesk.com/v1/bpi/currentprice.json");
+        CloseableHttpResponse response = client.execute(get);
+        Scanner s = new Scanner( response.getEntity().getContent() ).useDelimiter("\\A");
+        String content =  s.hasNext() ? s.next() : "";;
+        JsonObject jsonObject = new JsonParser().parse( content ).getAsJsonObject();
+        JsonObject gbp = jsonObject.get("bpi").getAsJsonObject().get("GBP").getAsJsonObject();
+        BigDecimal price = gbp.get("rate_float").getAsBigDecimal();
+        BigDecimal budget = BigDecimal.valueOf( Config.GBP_PER_TRADE );
+        int precision = 10;
+        price = price.setScale( precision, RoundingMode.HALF_UP );
+        budget = budget.setScale( precision, RoundingMode.HALF_UP );
+        Static.QUOTE_PER_TRADE = budget.divide( price, RoundingMode.HALF_UP );
+    }
+
     public static void main(String[] args) throws Exception {
 
         Static.initRootLoggers();
@@ -40,6 +56,10 @@ public class Schedule {
         Thread parentThread = Thread.currentThread();
         parentThread.setName( "Parent" );
         BinanceApiRestClient client = Static.getFactory().newRestClient();
+
+        log.info( "Setting quote budget...");
+        setBudgets();
+        log.info( "Successfully set quote budget" );
 
         /* Check we are in sync and all services are available */
         log.info( "Pinging server... ");

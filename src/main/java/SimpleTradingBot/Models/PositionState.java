@@ -36,14 +36,6 @@ public class PositionState {
         this.flags = flags;
     }
 
-    public boolean getMaintained() {
-        return this.visibility == Visibility.UPDATED;
-    }
-
-    public boolean isOutdated() {
-        return this.visibility == Visibility.OUTDATED;
-    }
-
     public void setAsOutdated( ) {
         this.visibility = Visibility.OUTDATED;
     }
@@ -68,10 +60,31 @@ public class PositionState {
         return this.visibility == Visibility.UPDATED;
     }
 
+    public boolean isOutdated() {
+        return this.visibility == Visibility.OUTDATED;
+    }
+
+    public boolean isStable ( ) {
+        return this.visibility == Visibility.STABLE;
+    }
+
+
+    public boolean isBuyOrHold()  {
+       return this.type.isBuyOrHold();
+    }
+
 
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + "[" + this.type + ", " + this.flags + "," + this.visibility + "]";
+    }
+
+    public String toShortString() {
+        char t = this.type.toString().charAt( 0 );
+        char f = this.flags.toString().charAt( 0 );
+        char v = this.visibility.toString().charAt( 0 );
+        return "[" + t + "," + f + "," + v + "]";
+
     }
 
     /* Describes the current stage in
@@ -92,6 +105,10 @@ public class PositionState {
 
         public  boolean isClean() {
             return ( this == HOLD || this == CLEAR );
+        }
+
+        public boolean isBuyOrHold()  {
+            return ( this == BUY || this == HOLD );
         }
 
     }

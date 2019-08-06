@@ -1,6 +1,5 @@
 package SimpleTradingBot.Models;
 
-import SimpleTradingBot.Util.Static;
 import com.binance.api.client.domain.account.NewOrder;
 import com.binance.api.client.domain.account.NewOrderResponse;
 
@@ -16,55 +15,100 @@ public class RoundTrip {
     /* For market orders */
     private final BigDecimal closePrice;
 
+    private final BigDecimal gain;
+
     private final Position buyPosition;
 
     private final Position sellPosition;
 
+    private final long buyId;
+
+    private final long sellId;
+
+    private final int nBuyUpdates;
+
+    private final int nSellUpdates;
+
+    private final long openTime;
+
+    private final long closeTime;
+
+    private final Duration holdTime;
+
     public RoundTrip(BigDecimal openPrice, BigDecimal closePrice,
                      Position buyPosition, Position sellPosition) {
+
         this.openPrice = openPrice;
         this.closePrice = closePrice;
         this.buyPosition = buyPosition;
         this.sellPosition = sellPosition;
-    }
-
-
-    public String getStats() {
 
         NewOrder originalBuy = this.buyPosition.getOriginalOrder();
         NewOrderResponse originalBuyResponse = this.buyPosition.getOriginalOrderResponse();
 
-        long buyId = originalBuyResponse.getOrderId();
-        long openTime = originalBuy.getTimestamp();
+        this.buyId = originalBuyResponse.getOrderId();
+        this.openTime = originalBuy.getTimestamp();
 
         NewOrder originalSell = this.sellPosition.getOriginalOrder();
         NewOrderResponse originalSellResponse = this.sellPosition.getOriginalOrderResponse();
 
-        long sellId = originalSellResponse.getOrderId();
-        long closeTime = originalSell.getTimestamp();
+        this.sellId = originalSellResponse.getOrderId();
+        this.closeTime = originalSell.getTimestamp();
 
-        BigDecimal gain = (this.openPrice.subtract( this.closePrice )).divide( openPrice, RoundingMode.HALF_UP );
+        this.gain = (this.closePrice.subtract( this.openPrice ))
+                .divide( closePrice, RoundingMode.HALF_UP )
+                .multiply( BigDecimal.valueOf( 100 ) );
 
-        int length = 5;
-        String openStr = Static.safeDecimal( this.openPrice, length );
-        String closeStr = Static.safeDecimal( this.closePrice, length );
-        String gainStr = Static.safeDecimal( gain, length );
+        this.holdTime = Duration.ofMillis( closeTime - openTime );
+        this.nBuyUpdates = this.buyPosition.getnUpdate();
+        this.nSellUpdates = this.sellPosition.getnUpdate();
+    }
 
+    public BigDecimal getGain() {
+        return gain;
+    }
 
-        String time = Static.toReadableDate( openTime );
-        Duration holdTime = Duration.ofMillis( closeTime - openTime );
-        int nBuyUpdates = this.buyPosition.getnUpdate();
-        int nSellUpdates = this.sellPosition.getnUpdate();
+    public BigDecimal getOpenPrice() {
+        return openPrice;
+    }
 
+    public BigDecimal getClosePrice() {
+        return closePrice;
+    }
 
-        return  "Buy Order id: " + buyId + "\n"
-                + "Sell Order id: " + sellId + "\n"
-                + "Buy updates: " + nBuyUpdates + "\n"
-                + "Sell updates " + nSellUpdates + "\n"
-                + "Open price: " + openStr + "\n"
-                + "Close price: " + closeStr +  "\n"
-                + "Gain%: " + gainStr + "\n"
-                + "Open time: " + time + "\n"
-                + "Hold time (s): " + holdTime.getSeconds() + "\n";
+    public Position getBuyPosition() {
+        return buyPosition;
+    }
+
+    public Position getSellPosition() {
+        return sellPosition;
+    }
+
+    public long getBuyId() {
+        return buyId;
+    }
+
+    public long getSellId() {
+        return sellId;
+    }
+
+    public int getnBuyUpdates() {
+        return nBuyUpdates;
+    }
+
+    public int getnSellUpdates() {
+        return nSellUpdates;
+    }
+
+    public long getOpenTime() {
+        return openTime;
+    }
+
+    public long getCloseTime() {
+        return closeTime;
+    }
+
+    public Duration getHoldTime() {
+        return holdTime;
     }
 }

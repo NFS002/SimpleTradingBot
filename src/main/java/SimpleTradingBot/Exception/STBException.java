@@ -1,6 +1,8 @@
 package SimpleTradingBot.Exception;
 
-public class STBException extends Exception {
+import java.io.UncheckedIOException;
+
+public class STBException extends RuntimeException {
 
     private final String message;
 

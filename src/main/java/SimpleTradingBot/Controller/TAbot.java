@@ -1,5 +1,6 @@
 package SimpleTradingBot.Controller;
 
+import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Rules.IRule;
 import SimpleTradingBot.Util.Static;
 import com.binance.api.client.domain.market.TickerStatistics;
@@ -16,63 +17,62 @@ public class TAbot {
 
     private Logger log;
 
-    private PrintWriter writer;
+    private int nFields;
 
-    public TAbot( TickerStatistics statistics, PrintWriter writer ) {
+    private String next;
+
+    public String getNext() {
+        String row = this.next;
+        this.next = "";
+        return row;
+    }
+
+    public int getnFields() {
+        return nFields;
+    }
+
+    public void setnFields(int nFields) {
+        this.nFields = nFields;
+    }
+
+    public TAbot(TickerStatistics statistics ) {
         String loggerName = this.getClass().getSimpleName();
         this.statistics = statistics;
         this.log = Logger.getLogger( "root." + statistics.getSymbol() + "." + loggerName );
-        this.writer = writer;
+        setHeader();
+    }
+
+    private void setHeader() {
+        StringBuilder builder = new StringBuilder( );
+        for ( IRule rule: Config.TA_RULES )
+            builder.append( rule.getNext() );
+        this.next = builder.toString();
+        if ( this.next.trim().isEmpty() )
+            this.nFields = 0;
+        else
+            this.nFields = this.next.split( "," ).length;
 
     }
 
-    public TAbot( TickerStatistics statistics ) {
-        this ( statistics, null );
 
-    }
 
-    public void setWriter(PrintWriter writer) {
-        this.writer = writer;
-    }
-
-    public void append( String message ) {
-        if ( this.writer != null )
-            this.writer.append( message ).flush();
-    }
-
-    public void close() {
-        if ( this.writer != null )
-            this.writer.close();
-    }
-
-    public boolean isSatisfied(TimeSeries series, IRule...rules) {
+    public boolean isSatisfied( TimeSeries series  ) {
         boolean satisfied = true;
         int index = series.getEndIndex();
-        long currentTime = System.currentTimeMillis();
-        String dateTime = Static.toReadableDate( currentTime );
+        StringBuilder builder = new StringBuilder();
 
-        if ( this.writer != null)
-            this.writer.append( dateTime ).append(":\n").flush();
 
-        for (IRule r: rules) {
-            StringBuilder builder = new StringBuilder();
-            Rule rule = r.apply( series, index, builder );
+        for ( IRule r: Config.TA_RULES ) {
+            Rule rule = r.apply( series, index );
+            builder.append( r.getNext() );
             satisfied = rule.isSatisfied( index );
-
-            if ( this.writer != null ) {
-                writer.append(r.getName()).append("\n");
-                writer.append(builder.toString());
-                writer.append("\n");
-                if ( satisfied )
-                    this.writer.append( "SATISFIED\n" );
-                this.writer.append("\n").flush();
-            }
-
             this.log.info( "Rule " + r.getName() + " applied. Satisfied: " + satisfied );
 
             if ( ! satisfied )
                 break;
         }
+
+        this.next = builder.toString();
         return satisfied;
     }
 

@@ -5,13 +5,12 @@ import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Models.FilterConstraints;
 import SimpleTradingBot.Models.PositionState;
 import SimpleTradingBot.Models.Position;
-import SimpleTradingBot.Models.QueueMessage;
+import SimpleTradingBot.Services.AccountManager;
 import SimpleTradingBot.Util.Static;
-import com.binance.api.client.BinanceApiRestClient;
+import com.binance.api.client.BinanceApiAsyncRestClient;
 import com.binance.api.client.domain.*;
 import com.binance.api.client.domain.account.*;
 import com.binance.api.client.domain.account.request.CancelOrderRequest;
-import com.binance.api.client.domain.account.request.CancelOrderResponse;
 import com.binance.api.client.domain.account.request.OrderStatusRequest;
 import com.binance.api.client.exception.BinanceApiException;
 import com.binance.api.client.domain.market.TickerStatistics;
@@ -20,8 +19,10 @@ import org.ta4j.core.num.Num;
 import org.ta4j.core.num.PrecisionNum;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TransferQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,7 +42,7 @@ public class Trader {
 
     private TrailingStop trailingStop;
 
-    private BinanceApiRestClient client;
+    private BinanceApiAsyncRestClient client;
 
     private PositionState state;
 
@@ -55,6 +56,8 @@ public class Trader {
     /* For market orders */
     private BigDecimal sellPrice;
 
+    private int nErr;
+
     /* Constructor */
     Trader(  Controller controller ) {
         this.controller = controller;
@@ -62,15 +65,20 @@ public class Trader {
         String loggerName = this.getClass().getSimpleName();
         log = Logger.getLogger("root." + symbol.getSymbol() + "." + loggerName);
         this.trailingStop = new TrailingStop( symbol );
-        this.client = Static.getFactory().newRestClient();
+        this.client = Static.getFactory().newAsyncRestClient();
         this.state = new PositionState();
         this.constraints = Static.constraints.get( symbol.getSymbol() );
+        this.nErr = 0;
     }
 
     /* Getters */
 
     public Position getBuyOrder() {
         return buyOrder;
+    }
+
+    public TrailingStop getTrailingStop() {
+        return trailingStop;
     }
 
     public Position getSellOrder() {
@@ -93,9 +101,9 @@ public class Trader {
     boolean shouldOpen( ) {
         log.entering(this.getClass().getSimpleName(),"shouldOpen");
         PositionState.Type stateType = this.state.getType();
-        boolean updated = this.state.isUpdated();
+        boolean updated = this.state.isUpdated() || this.state.isStable();
         boolean clear = (stateType == PositionState.Type.CLEAR ) || ( stateType == PositionState.Type.SELL );
-        log.info("State: " + stateType + ". Updated: " + updated);
+        this.log.info( String.format("State type: %s (%s), updated: %s", stateType, clear, updated));
         log.exiting(this.getClass().getSimpleName(),"shouldOpen");
         return clear && updated;
     }
@@ -114,35 +122,30 @@ public class Trader {
             return breached;
     }
 
-    boolean open( BigDecimal close ) throws STBException {
+    boolean open( BigDecimal close ) throws InterruptedException, STBException {
         log.entering(this.getClass().getSimpleName(), "open");
-        BigDecimal baseQty = this.constraints.getNext_qty();
-        BigDecimal qty = baseQty.divide( close, RoundingMode.HALF_UP );
-        qty = this.constraints.adjustQty( qty );
-        if ( qty == null ) {
-            this.log.info( "Adjusted quantity is below minimum, shutting down" );
-            this.controller.exit();
+        BigDecimal baseQty = AccountManager.getNextQty();
+        BigDecimal proposedQty = baseQty.divide( close, RoundingMode.HALF_DOWN);
+        BigDecimal adjustedQty = this.constraints.adjustQty( proposedQty );
+        this.log.info( "Quantity : " + proposedQty + " -> " + adjustedQty);
+        int precision = this.constraints.getBASE_PRECISION() - 2;
+        NewOrder newOrder = marketBuy(this.symbol.getSymbol(), Static.safeDecimal(adjustedQty,  precision ));
+        NewOrderResponse response = submit( newOrder, close );
+        if ( response == null) {
+            this.log.warning( "Order suspended");
+            return false;
         }
-        else {
-            NewOrder newOrder = marketBuy(this.symbol.getSymbol(), Static.safeDecimal(qty, 20));
-            NewOrderResponse response = submit(newOrder, close);
-            if ( response == null) {
-                this.log.warning( "Order suspended");
-                return false;
-            }
-            BigDecimal initialStop = close.multiply(Config.STOP_LOSS_PERCENT);
-            this.trailingStop.setStopLoss(initialStop);
-            this.log.info(newOrder.toString());
-            this.log.info(response.toString());
-            this.buyOrder = new Position(newOrder, response);
-            this.buyPrice = close;
-        }
-
+        BigDecimal initialStop = close.multiply(Config.STOP_LOSS_PERCENT);
+        this.trailingStop.setStopLoss(initialStop);
+        this.log.info(newOrder.toString());
+        this.log.info(response.toString());
+        this.buyOrder = new Position(newOrder, response);
+        this.buyPrice = close;
         log.exiting(this.getClass().getSimpleName(), "open");
         return true;
     }
 
-    boolean close( Bar lastBar ) throws STBException {
+    boolean close( Bar lastBar ) throws InterruptedException, STBException {
         log.entering(this.getClass().getSimpleName(), "close");
 
         Num closePrice = lastBar.getClosePrice();
@@ -181,23 +184,22 @@ public class Trader {
                 Order buyOrder = this.buyOrder.getUpdatedOrder( nUpdates );
                 return buyOrder.getExecutedQty();
             case FAKEORDER:
-            case NOORDER:
                 default:
                 NewOrder order = this.buyOrder.getOriginalOrder();
                 return order.getQuantity();
         }
     }
 
-    void update( Bar bar ) throws STBException {
+    void update( Bar bar ) throws InterruptedException, STBException {
         log.entering(this.getClass().getSimpleName(), "update" );
-        BigDecimal close = new BigDecimal( bar.getClosePrice().doubleValue() );
+        BigDecimal close = (BigDecimal) bar.getClosePrice().getDelegate();
 
-        if ( Config.TRAILING_STOP )
+        if ( Config.TRAILING_STOP && this.state.isBuyOrHold() )
             this.trailingStop.update( bar );
 
-        if ( this.state.getMaintained() ) {
+        if ( this.state.isUpdated() ) {
             PositionState.Type type = this.state.getType();
-            log.info( "Updating position " + type );
+            log.info( "Updating position: " + type );
 
             switch ( type ) {
                 case HOLD:
@@ -218,7 +220,7 @@ public class Trader {
         log.exiting(this.getClass().getSimpleName(), "update");
     }
 
-    private void update( OrderSide side, BigDecimal close ) throws STBException {
+    private void update( OrderSide side, BigDecimal close ) throws InterruptedException, STBException {
 
         log.entering(this.getClass().getSimpleName(), "update: " + side);
         log.info("Updating side: " + side);
@@ -274,33 +276,39 @@ public class Trader {
                     this.log.severe("Unknown flags: " + flags);
 
         }
-        log.exiting(this.getClass().getSimpleName(), "update: " + side);
+        log.exiting( this.getClass().getSimpleName(), "update: " + side );
     }
 
-    private void update_internal( long orderId )
-        throws STBException {
+    private void update_internal( long orderId ) {
         log.entering(this.getClass().getSimpleName(), "update_internal");
         OrderStatusRequest statusRequest = new OrderStatusRequest( this.symbol.getSymbol(), orderId );
         log.info( "Getting update: " + statusRequest) ;
-        Order order = client.getOrderStatus( statusRequest );
+        client.getOrderStatus( statusRequest, this::onOrderUpdate );
+        log.exiting(this.getClass().getSimpleName(), "update_internal");
+    }
+
+    private void onOrderUpdate( Order order ) throws STBException {
+        this.log.entering( this.getClass().getSimpleName(), "onOrderUpdate" );
         OrderSide side = order.getSide();
         log.info( "Got update: " + order );
         Position position = ( side == OrderSide.BUY ) ? this.buyOrder : this.sellOrder;
         position.setUpdatedOrder( order );
-        log.exiting(this.getClass().getSimpleName(), "update_internal");
+        this.log.exiting( this.getClass().getSimpleName(), "onOrderUpdate" );
     }
 
     private boolean restart( OrderSide side, BigDecimal close )
-        throws STBException{
+        throws InterruptedException, STBException{
         log.entering(this.getClass().getSimpleName(), "restart" );
         Position position = ( side == OrderSide.BUY ) ? this.buyOrder : this.sellOrder;
         NewOrder newOrder = position.getOriginalOrder();
         log.info("Restarting order: " + newOrder);
         NewOrderResponse response = submit( newOrder, close  );
+
         if ( response == null ) {
             this.log.info( "Postponing restart");
             return false;
         }
+
         this.log.info( "Restarted order: " + response );
         position.setOriginalOrderResponse( response );
         log.exiting(this.getClass().getSimpleName(), "restart" );
@@ -319,40 +327,55 @@ public class Trader {
         log.entering(this.getClass().getSimpleName(), "cancel");
         CancelOrderRequest cancelOrderRequest = new CancelOrderRequest( this.symbol.getSymbol(), orderId );
         log.info( "Cancelling order: " + cancelOrderRequest );
-        CancelOrderResponse cancelOrderResponse = client.cancelOrder( cancelOrderRequest );
-        log.info("Cancel order response: " + cancelOrderResponse );
+        client.cancelOrder( cancelOrderRequest,  response -> this.log.info("Cancel order response: " + response ) );
         log.exiting(this.getClass().getSimpleName(), "cancel");
     }
 
-    private NewOrderResponse submit( NewOrder order, BigDecimal close ) throws STBException {
+    private synchronized NewOrderResponse submit( NewOrder order, BigDecimal close )
+            throws InterruptedException, STBException {
         log.entering(this.getClass().getSimpleName(), "submit");
-        NewOrderResponse response = null;
-        for (int i = 0; i < Config.MAX_ORDER_RETRY; i++) {
-            try {
-                switch ( Config.TEST_LEVEL ) {
-                    case REAL:
-                        response = client.newOrder(order);
-                        break;
-                    case FAKEORDER:
-                        client.newOrderTest( order );
-                    case NOORDER:
-                        response = fakeResponse( order, close.toPlainString() );
-                }
-                log.exiting(this.getClass().getSimpleName(), "submit");
-                break;
+        final TransferQueue<NewOrderResponse> queue = new LinkedTransferQueue<>();
+        try {
+            switch ( Config.TEST_LEVEL ) {
+                case REAL:
+                    client.newOrder(order, r -> {
+                        try {
+                            queue.transfer( r );
+                        }
+                        catch ( InterruptedException e ) {
+                            boolean success = queue.tryTransfer( r );
+
+                            if (!success ) {
+                                this.log.log(Level.SEVERE, "Submission failed", e);
+                            }
+
+                        }
+                    } );
+                    break;
+                case FAKEORDER:
+                default:
+                    client.newOrderTest( order, r  ->  queue.offer( fakeResponse( order, close.toString() )) );
+                    break;
             }
-            catch (BinanceApiException e) {
-                log.log(Level.WARNING, "Failed submission. Attempt: " + i, e);
-                String message = e.getMessage();
-                if ( message.contains("LOT_SIZE"))
-                    return null;
-            }
-        }
-        if ( response == null ) {
-            throw new STBException( 70 );
-        }
-        else
+            NewOrderResponse response = queue.poll( 40, TimeUnit.SECONDS );
+            this.nErr = 0;
             return response;
+        }
+
+        catch ( BinanceApiException e) {
+
+            log.log(Level.WARNING, "Failed submission, attempt: " + this.nErr, e);
+
+            if (++this.nErr >= Config.MAX_ORDER_RETRY)
+                throw new STBException(70);
+            else
+                return null;
+
+        }
+
+        finally {
+            log.exiting(this.getClass().getSimpleName(), "submit");
+        }
     }
 
     public void updateState( PositionState.Type state, PositionState.Flags flags ) {
@@ -379,5 +402,13 @@ public class Trader {
         response.setStatus( OrderStatus.FILLED );
         response.setTimeInForce( newOrder.getTimeInForce() );
         return response;
+    }
+
+    private void on(Order order) {
+        try {
+            onOrderUpdate(order);
+        } catch (STBException e) {
+            throw e;
+        }
     }
 }

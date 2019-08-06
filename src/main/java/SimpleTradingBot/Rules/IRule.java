@@ -5,7 +5,9 @@ import org.ta4j.core.TimeSeries;
 
 public interface IRule {
 
-    Rule apply( TimeSeries timeSeries, int index, StringBuilder builder );
+    Rule apply( TimeSeries timeSeries, int index );
 
     String getName( );
+
+    String getNext( );
 }

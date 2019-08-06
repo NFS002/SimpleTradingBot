@@ -2,11 +2,8 @@ package SimpleTradingBot.Services;
 
 
 import SimpleTradingBot.Config.Config;
-import SimpleTradingBot.Models.FilterConstraints;
 import SimpleTradingBot.Models.QueueMessage;
-import SimpleTradingBot.Util.Handler;
 import SimpleTradingBot.Util.Static;
-import SimpleTradingBot.Util.TestLevel;
 import com.binance.api.client.BinanceApiCallback;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.BinanceApiWebSocketClient;
@@ -15,16 +12,17 @@ import com.binance.api.client.domain.account.AssetBalance;
 import com.binance.api.client.domain.event.AccountUpdateEvent;
 import com.binance.api.client.domain.event.UserDataUpdateEvent;
 
+import javax.swing.plaf.synth.SynthScrollBarUI;
+import java.io.Closeable;
+import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 import static  com.binance.api.client.domain.event.UserDataUpdateEvent.UserDataUpdateEventType.ACCOUNT_UPDATE;
 
+/* TODO: Check balances have updated before each order */
 public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
 
     private BinanceApiRestClient restClient;
@@ -35,7 +33,11 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
 
     private final long updateFrequency;
 
+    private final Closeable closeable;
+
     private final Logger log;
+
+    private static BigDecimal nextQty;
 
 
     public AccountManager() {
@@ -44,42 +46,38 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
         this.listenKey = restClient.startUserDataStream();
         this.lastUpdated = System.currentTimeMillis();
         this.updateFrequency = ( 60 * 30 * 1000 );
+        nextQty = null;
         this.log = Logger.getLogger( "root.asm" );
 
         BinanceApiWebSocketClient webSocketClient = Static.getFactory().newWebSocketClient();
         Account account = restClient.getAccount( Config.RECV_WINDOW, timeStamp );
-        String base = Config.BASE_ASSET;
-        AssetBalance b = account.getAssetBalance( base );
+        String quote = Config.QUOTE_ASSET;
+        AssetBalance b = account.getAssetBalance( quote );
         setBalances( b.getFree() );
-        webSocketClient.onUserDataUpdateEvent( this.listenKey, this );
+        this.closeable = webSocketClient.onUserDataUpdateEvent( this.listenKey, this );
 
     }
 
-    private void setBalances( String remainingStr ) {
+    public static BigDecimal getNextQty() {
+        return nextQty;
+    }
+
+    private void setBalances(String remainingStr ) {
         this.log.entering( this.getClass().getSimpleName(), "setBalances" );
-        log.info( "Setting balances with remaining balance of: " + remainingStr + " " + Config.BASE_ASSET);
-        HashMap<String, FilterConstraints> constraints = Static.constraints;
-        BigDecimal size = BigDecimal.valueOf( constraints.size() );
+        log.info( "Setting balances with remaining balance of: " + remainingStr + " " + Config.QUOTE_ASSET);
         BigDecimal remaining = new BigDecimal( remainingStr );
-        BigDecimal each;
-        if ( remaining.compareTo(BigDecimal.ZERO) < 1 )
-            each = BigDecimal.ZERO;
-        else
-            each = size.divide( remaining, RoundingMode.HALF_DOWN );
-        BigDecimal max = BigDecimal.valueOf( Config.MAX_BUDGET_PER_TRADE );
 
-        for ( FilterConstraints constraint : constraints.values() ) {
+        remaining = remaining.compareTo( BigDecimal.ZERO ) < 1 ? BigDecimal.ZERO : remaining;
 
-            if (Config.TEST_LEVEL == TestLevel.REAL) {
-                BigDecimal nxtQty = each.compareTo( max ) > 0 ? max : each;
-                log.info("Setting next quantity of " + nxtQty + " for constraint " + constraint.getSYMBOL());
-                constraint.setNext_qty(nxtQty);
-            }
-            else {
-                log.info("Setting next quantity of " + max + " for constraint " + constraint.getSYMBOL());
-                constraint.setNext_qty(max);
-            }
+        remaining = remaining.compareTo( Static.QUOTE_PER_TRADE ) > 0 ? Static.QUOTE_PER_TRADE : remaining;
 
+        switch ( Config.TEST_LEVEL ) {
+            case REAL:
+                nextQty = remaining;
+                break;
+            case FAKEORDER:
+                nextQty = Static.QUOTE_PER_TRADE;
+                break;
         }
 
         this.log.exiting( this.getClass().getSimpleName(), "setBalances" );
@@ -93,7 +91,7 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
         if ( event.getEventType() == ACCOUNT_UPDATE ) {
             AccountUpdateEvent accountUpdateEvent = event.getAccountUpdateEvent();
             List<AssetBalance> balances = accountUpdateEvent.getBalances();
-            String asset = Config.BASE_ASSET;
+            String asset = Config.QUOTE_ASSET;
             Optional<AssetBalance> optAssetBalance = balances.stream().filter(b -> b.getAsset().equals(asset)).findFirst();
             if ( optAssetBalance.isPresent() ) {
                 AssetBalance assetBalance = optAssetBalance.get();
@@ -124,6 +122,13 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
         this.log.entering(this.getClass().getSimpleName(), "close");
         this.log.info("Closing down data stream and thread" );
         this.restClient.closeUserDataStream( this.listenKey );
+        try {
+            this.closeable.close();
+        }
+        catch ( IOException e) {
+            this.log.log(Level.SEVERE, "Error closing user data stream", e);
+        }
+
         Thread thread = Thread.currentThread();
         if ( !thread.isInterrupted() )
             thread.interrupt();

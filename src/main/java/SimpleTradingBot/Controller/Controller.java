@@ -24,10 +24,8 @@ import java.math.BigDecimal;
 import java.time.*;
 import java.util.List;
 import java.util.Optional;
-import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.XMLFormatter;
 import java.util.stream.Stream;
 
 import static SimpleTradingBot.Config.Config.*;
@@ -38,6 +36,8 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
     private TickerStatistics summary;
 
     private TAbot taBot;
+
+    private boolean paused;
 
     private Handler handler;
 
@@ -59,6 +59,8 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
 
     private String assetSymbol;
 
+    private int nWssErr;
+
     /* Constructor */
 
     public Controller( TickerStatistics summary )
@@ -77,20 +79,15 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         this.timeKeeper = new TimeKeeper( summary );
         this.taBot = new TAbot( summary );
         this.coolOff = 0;
-
+        this.nWssErr = 0;
+        this.paused = false;
 
         File baseDir = initBaseDir();
 
         if ( SHOULD_LOG_TS || SHOULD_LOG_INIT_TS )
             initTsWriter( baseDir );
 
-        if ( SHOULD_LOG_TA ) {
-            PrintWriter writer = initTaWriter( baseDir );
-            this.taBot.setWriter( writer );
-        }
-
-
-        initLogger( baseDir );
+        initLogger( );
 
         if ( INIT_TS )
             initSeries();
@@ -106,12 +103,24 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         return buyer;
     }
 
+    public TimeKeeper getTimeKeeper() {
+        return timeKeeper;
+    }
+
     public PositionState getState() {
         return this.buyer.getState();
     }
 
     public String getBase() {
         return baseSymbol;
+    }
+
+    public boolean isPaused() {
+        return paused;
+    }
+
+    public void pause() {
+        this.paused = true;
     }
 
     public TimeSeries getTimeSeries() {
@@ -130,14 +139,15 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         return summary;
     }
 
+
     /* Local methods */
 
     @Override
     public void onFailure( Throwable cause ) {
         this.log.entering( this.getClass().getSimpleName(), "onFailure" );
+        log.log( Level.SEVERE, cause.getMessage(), cause );
         if ( cause instanceof STBException ) {
             STBException exception = ( STBException ) cause;
-            log.log( Level.SEVERE, cause.getMessage(), exception );
             switch ( exception.getStatusCode() ) {
 
                 case 60:
@@ -157,7 +167,7 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
                 case 160:   //"RECV_WINDOW";
 
                 try {
-                    reset();
+                    resetAll();
                 }
 
                 catch ( Exception e ) {
@@ -186,13 +196,34 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
                 break;
 
             }
-
         }
 
-        else {
-            log.log( Level.SEVERE, cause.getMessage(), cause );
+        else if ( cause.getMessage().startsWith("sent ping but didn't receive pong") ) {
+            long now = System.currentTimeMillis();
+            this.timeKeeper.endStream( now );
+            long time = this.timeKeeper.getStreamTime();
+            this.nWssErr = ( time < 60000 * 10 ) ? this.nWssErr + 1 : 0;
+            this.log.warning( String.format("Wss err (%d/%d)", this.nWssErr, Config.MAX_WSS_ERR ));
+            if ( this.nWssErr < Config.MAX_WSS_ERR ) {
+                /* Wait a minute then reset */
+                try {
+                    closeWss( );
+                    Thread.sleep(60000 * 5);
+                    liveStream();
+                }
+
+                catch (Exception ex) {
+                    log.log(Level.SEVERE, "Error performing reset ", ex);
+                    exit();
+                }
+            }
+
+            else
+                exit();
+        }
+
+        else
             exit();
-        }
 
         this.log.exiting( this.getClass().getSimpleName(), "onFailure" );
     }
@@ -220,8 +251,20 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         this.log.exiting( this.getClass().getSimpleName(), "checkExitQueue");
     }
 
-    private void reset()  {
-        this.log.entering( this.getClass().getSimpleName(), "reset");
+    private void closeWss( ) throws Exception {
+        this.log.entering( this.getClass().getSimpleName(), "closeWss");
+        this.log.warning( "Closing wss..." );
+        closeable.close();
+        this.pause();
+
+        if ( this.tsWriter != null )
+            this.tsWriter.append( "\n" ).flush();
+
+        this.log.exiting( this.getClass().getSimpleName(), "closeWss");
+    }
+
+    private void resetAll() throws Exception  {
+        this.log.entering( this.getClass().getSimpleName(), "resetAll");
         log.warning( "Performing reset..." );
         String symbol = summary.getSymbol();
         BaseTimeSeries.SeriesBuilder builder = new BaseTimeSeries.SeriesBuilder();
@@ -233,28 +276,20 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         long now = System.currentTimeMillis();
         this.timeKeeper.endStream( now );
         long time = this.timeKeeper.getStreamTime();
-
-        try {
-            closeable.close();
-        }
-        catch ( IOException e ) {
-            log.log( Level.SEVERE, "Error resetting WSS socket, exiting instead ", e);
-            exit();
-        }
+        closeable.close();
 
         String resetMessage = "\n**********RESET (" + time + ")s **********\n";
 
         if ( this.tsWriter != null )
             this.tsWriter.append( resetMessage ).flush();
 
-        this.taBot.append( resetMessage );
 
         if ( INIT_TS )
             initSeries();
 
         liveStream();
 
-        this.log.exiting( this.getClass().getSimpleName(), "reset");
+        this.log.exiting( this.getClass().getSimpleName(), "resetAll");
     }
 
     public void exit( ) {
@@ -269,7 +304,6 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         }
 
         this.tsWriter.close();
-        this.taBot.close();
 
         log.warning( "Removing filter constraint");
         Static.removeConstraint( this.summary.getSymbol() );
@@ -298,19 +332,21 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
                 log.info( "Received candlestick response in time");
                 checkExitQueue();
                 Bar nextBar = candlestickEventToBar( candlestick );
-                log.info("Adding bar to timeseries: " + candlestick);
-                addBarToTimeSeries( nextBar );
 
                 this.buyer.update( nextBar );
 
                 if ( shouldClose( nextBar ))
                     close( nextBar );
 
-                else if ( shouldOpen( ) )
-                    open( nextBar );
+                else if ( shouldOpen() )
+                        open(nextBar);
 
                 else
                     log.info("No action taken");
+
+                String next = this.taBot.getNext();
+                log.info("Adding bar to timeseries: " + candlestick);
+                addBarToTimeSeries( nextBar, next );
             }
         }
 
@@ -337,7 +373,8 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
                     if ( FORCE_ORDER )
                         ta = true;
                     else
-                        ta = this.taBot.isSatisfied(this.timeSeries, Config.TA_RULES);
+                        ta = this.taBot.isSatisfied( this.timeSeries );
+
                     this.log.info("TA: " + ta );
                 }
             }
@@ -351,8 +388,8 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         PositionState state = this.buyer.getState();
         PositionState.Type stateType = state.getType();
         boolean hold = ( stateType == PositionState.Type.HOLD || stateType == PositionState.Type.BUY );
-        boolean updated = state.isUpdated();
-        log.info( "State type: " + stateType + ", updated: " + updated );
+        boolean updated = state.isUpdated() || state.isStable();
+        this.log.info( String.format("State type: %s (%s), updated: %s", stateType, hold, updated));
 
         if ( hold && updated ) {
             boolean buyerClear = buyer.shouldClose(lastBar);
@@ -367,7 +404,7 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
 
     }
 
-    private void close( Bar lastBar ) throws STBException {
+    private void close( Bar lastBar ) throws InterruptedException, STBException {
         log.entering( this.getClass().getSimpleName(), "close");
         log.info("Preparing to close order" );
         PositionState state = getState();
@@ -378,7 +415,7 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         log.exiting( this.getClass().getSimpleName(), "close");
     }
 
-    private void open( Bar lastBar ) throws STBException {
+    private void open( Bar lastBar ) throws InterruptedException, STBException {
         this.log.entering( this.getClass().getSimpleName(), "open");
         BigDecimal cp = new BigDecimal( lastBar.getClosePrice().toString() );
         String closeStr = Static.safeDecimal( cp, 20 );
@@ -393,15 +430,16 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         log.exiting(Controller.class.getSimpleName(), "open");
     }
 
-    private void addBarToTimeSeries( Bar bar ) {
+    private void addBarToTimeSeries( Bar bar, String next ) {
         log.entering(this.getClass().getName(), "addBarToTimeSeries");
         if ( SHOULD_LOG_INIT_TS || SHOULD_LOG_TS && this.timeSeries.getBarCount() >= INIT_BARS )
-            logTS( bar );
+            logTS( bar, next );
         this.timeSeries.addBar( bar );
         log.exiting(this.getClass().getName(), "addBarToTimeSeries");
     }
 
     public void liveStream() throws BinanceApiException {
+        this.log.entering( this.getClass().getSimpleName(), "liveStream" );
         log.info("Attempting data stream....");
         long currentTime = System.currentTimeMillis();
         String dateTime = Static.toReadableDate( currentTime );
@@ -409,19 +447,35 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         BinanceApiWebSocketClient webSocketClient = Static.getFactory().newWebSocketClient();
         this.closeable = webSocketClient.onCandlestickEvent( this.summary.getSymbol().toLowerCase(),Config.CANDLESTICK_INTERVAL, this);
         log.info("Connected to WSS data stream at " + dateTime + ", " + summary.getSymbol());
+        this.log.exiting( this.getClass().getSimpleName(), "liveStream" );
+        this.paused = false;
     }
 
     public void updateState( PositionState.Type state, PositionState.Flags flags ) {
         this.buyer.updateState( state, flags );
     }
 
-    private void logTS( Bar bar ) {
+    private void logTS( Bar bar, String next ) {
         ZonedDateTime dateTime = bar.getBeginTime();
         String readableDateTime = dateTime.toLocalTime().format( Static.timeFormatter );
-        Num close = bar.getClosePrice();
+        BigDecimal close = (BigDecimal) bar.getClosePrice().getDelegate();
         PositionState state = getState();
-        this.tsWriter.append(readableDateTime).append("\t\t\t\t").append(close.toString())
-                .append("\t\t\t").append( state.toString() ).append("\t\t\t\n").flush();
+        BigDecimal stopLoss = this.buyer.getTrailingStop().getStopLoss();
+        int l = next.trim().length();
+        int n = this.taBot.getnFields();
+
+        if ( l > 1 )
+            next = "," + next.substring( 0, l - 1 );
+        else if ( n > 0 )
+            next = ",".repeat( n );
+
+        this.tsWriter
+                .append( readableDateTime ).append(",")
+                .append( close.toPlainString() ).append(",")
+                .append( stopLoss.toPlainString() ).append(",")
+                .append( state.toShortString() )
+                .append( next ).append("\n")
+                .flush();
     }
 
     private Bar candlestickEventToBar( CandlestickEvent candlestickEvent )  {
@@ -477,7 +531,7 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         log.info("Initialising timeseries with " + candlesticks.size() + " bars");
         for (Candlestick candletick:candlesticks) {
             Bar bar = candlestickToBar( candletick );
-            addBarToTimeSeries( bar );
+            addBarToTimeSeries( bar, "" );
         }
 
         log.exiting( this.getClass().getSimpleName(), "initSeries");
@@ -489,29 +543,30 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
     }
 
     private File initBaseDir() throws STBException {
-        File dir = new File(Config.OUT_DIR + summary.getSymbol());
+        File dir = new File(Static.OUT_DIR + summary.getSymbol());
         if (!dir.exists() && !dir.mkdirs())
             throw new STBException( 60 );
         return dir;
     }
 
     private void initTsWriter( File baseDir ) throws IOException {
-        this.tsWriter = new PrintWriter( baseDir + "/ts.txt" );
-        this.tsWriter.append("TIME\t\t\t\tCLOSE\t\t\t\tPOS\t\t\t\t\n").flush();
+        this.tsWriter = new PrintWriter( baseDir + "/ts.csv" );
+        String taHeader = this.taBot.getNext();
+        String myHeader = "TIME,CLOSE,STOP,POS,";
+        int n = myHeader.length();
+        int l = taHeader.length();
+        if ( l > 1 )
+            taHeader = taHeader.substring(0, l - 1);
+        else
+            myHeader = myHeader.substring( 0, n - 1 );
+        String header = myHeader + taHeader;
+        this.tsWriter.append( header ).append("\n").flush();
     }
 
-    private void initLogger( File baseDir ) throws IOException {
-        this.log = Logger.getLogger("root." + summary.getSymbol());
-        FileHandler fileHandler = new FileHandler(baseDir + "/debug.log");
-        XMLFormatter formatter = new XMLFormatter();
-        fileHandler.setFormatter( formatter );
-        this.log.addHandler(fileHandler);
+    private void initLogger( ) {
+        this.log = Logger.getLogger("root." + this.summary.getSymbol() );
+        log.setLevel( Level.ALL );
+        log.setUseParentHandlers( true );
     }
 
-    private PrintWriter initTaWriter( File baseDir ) throws IOException {
-        File f = new File(baseDir + "/ta.txt"); // create log files
-        if (!f.exists() && !f.createNewFile())
-            throw new IOException("TA_FILE_CREATE");
-        return new PrintWriter( f );
-    }
 }
