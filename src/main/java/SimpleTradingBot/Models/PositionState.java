@@ -76,14 +76,14 @@ public class PositionState {
 
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + "[" + this.type + ", " + this.flags + "," + this.visibility + "]";
+        return this.getClass().getSimpleName() + "[" + this.type + "|" + this.flags + "|" + this.visibility + "]";
     }
 
     public String toShortString() {
         char t = this.type.toString().charAt( 0 );
         char f = this.flags.toString().charAt( 0 );
         char v = this.visibility.toString().charAt( 0 );
-        return "[" + t + "," + f + "," + v + "]";
+        return "[" + t + "|" + f + "|" + v + "]";
 
     }
 

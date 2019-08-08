@@ -46,8 +46,6 @@ public class Trader {
 
     private PositionState state;
 
-    private final Controller controller;
-
     FilterConstraints constraints;
 
     /* For market orders */
@@ -60,7 +58,6 @@ public class Trader {
 
     /* Constructor */
     Trader(  Controller controller ) {
-        this.controller = controller;
         this.symbol = controller.getSummary();
         String loggerName = this.getClass().getSimpleName();
         log = Logger.getLogger("root." + symbol.getSymbol() + "." + loggerName);
