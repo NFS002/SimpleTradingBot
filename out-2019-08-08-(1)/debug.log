@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE log SYSTEM "logger.dtd">
+<log>
+<record>
+  <date>2019-08-08T07:19:23.760096Z</date>
+  <millis>1565248763760</millis>
+  <nanos>96000</nanos>
+  <sequence>0</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Setting quote budget...</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:24.708967Z</date>
+  <millis>1565248764708</millis>
+  <nanos>967000</nanos>
+  <sequence>1</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Successfully set quote budget</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:24.709604Z</date>
+  <millis>1565248764709</millis>
+  <nanos>604000</nanos>
+  <sequence>2</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Pinging server... </message>
+</record>
+<record>
+  <date>2019-08-08T07:19:25.198521Z</date>
+  <millis>1565248765198</millis>
+  <nanos>521000</nanos>
+  <sequence>3</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Ping successful</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:25.199405Z</date>
+  <millis>1565248765199</millis>
+  <nanos>405000</nanos>
+  <sequence>4</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Checking server time difference...</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:25.553114Z</date>
+  <millis>1565248765553</millis>
+  <nanos>114000</nanos>
+  <sequence>5</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Server time: 1565248765348, Client time: 1565248765517</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:25.563279Z</date>
+  <millis>1565248765563</millis>
+  <nanos>279000</nanos>
+  <sequence>6</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Server time difference: (-169)</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:25.563771Z</date>
+  <millis>1565248765563</millis>
+  <nanos>771000</nanos>
+  <sequence>7</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Initialising configuration settings...</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:25.585945Z</date>
+  <millis>1565248765585</millis>
+  <nanos>945000</nanos>
+  <sequence>8</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Configuration complete</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:25.586396Z</date>
+  <millis>1565248765586</millis>
+  <nanos>396000</nanos>
+  <sequence>9</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Requesting exchange information...</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.043091Z</date>
+  <millis>1565248766043</millis>
+  <nanos>91000</nanos>
+  <sequence>10</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Received exchange information</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.043645Z</date>
+  <millis>1565248766043</millis>
+  <nanos>645000</nanos>
+  <sequence>11</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Setting rate limits...</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.044076Z</date>
+  <millis>1565248766044</millis>
+  <nanos>76000</nanos>
+  <sequence>12</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Requesting 24hr statistics on all symbols...</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.806432Z</date>
+  <millis>1565248766806</millis>
+  <nanos>432000</nanos>
+  <sequence>13</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Succesfully received 590 symbols</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.819025Z</date>
+  <millis>1565248766819</millis>
+  <nanos>25000</nanos>
+  <sequence>14</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Filtering symbols based on exchange information, under the following predicate: Min volume: 10000, TRADING, MARKET</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.849153Z</date>
+  <millis>1565248766849</millis>
+  <nanos>153000</nanos>
+  <sequence>15</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Filtering successful. 590 symbols remaining</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.849564Z</date>
+  <millis>1565248766849</millis>
+  <nanos>564000</nanos>
+  <sequence>16</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Removing duplicate assets...</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.868310Z</date>
+  <millis>1565248766868</millis>
+  <nanos>310000</nanos>
+  <sequence>17</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Removed duplicates. 180 symbols remaining</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.871578Z</date>
+  <millis>1565248766871</millis>
+  <nanos>578000</nanos>
+  <sequence>18</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Sorting symbols under the following comparator: PRICE_CHANGE_PERCENT</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.876774Z</date>
+  <millis>1565248766876</millis>
+  <nanos>774000</nanos>
+  <sequence>19</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Sorting complete. Selecting first 1 symbols.</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.877085Z</date>
+  <millis>1565248766877</millis>
+  <nanos>85000</nanos>
+  <sequence>20</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Creating symbol constraints...</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.879380Z</date>
+  <millis>1565248766879</millis>
+  <nanos>380000</nanos>
+  <sequence>21</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Successfully retrieved symbol constraints</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:26.879922Z</date>
+  <millis>1565248766879</millis>
+  <nanos>922000</nanos>
+  <sequence>22</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Main.Schedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Beginning live stream of symbolCOSBNB</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:27.145396Z</date>
+  <millis>1565248767145</millis>
+  <nanos>396000</nanos>
+  <sequence>23</sequence>
+  <logger>root.COSBNB</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Controller.TimeKeeper</class>
+  <method>checkServerTime</method>
+  <thread>1</thread>
+  <message>Server time difference: -117</message>
+</record>
+<record>
+  <date>2019-08-08T07:19:27.173615Z</date>
+  <millis>1565248767173</millis>
+  <nanos>615000</nanos>
+  <sequence>24</sequence>
+  <logger>root.COSBNB</logger>
+  <level>FINER</level>
+  <class>Controller</class>
+  <method>initSeries</method>
+  <thread>1</thread>
+  <message>ENTRY</message>
+</record>
+</log>

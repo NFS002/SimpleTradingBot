@@ -7,10 +7,11 @@ import SimpleTradingBot.Models.PositionState;
 import SimpleTradingBot.Models.Position;
 import SimpleTradingBot.Services.AccountManager;
 import SimpleTradingBot.Util.Static;
-import com.binance.api.client.BinanceApiAsyncRestClient;
+import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.*;
 import com.binance.api.client.domain.account.*;
 import com.binance.api.client.domain.account.request.CancelOrderRequest;
+import com.binance.api.client.domain.account.request.CancelOrderResponse;
 import com.binance.api.client.domain.account.request.OrderStatusRequest;
 import com.binance.api.client.exception.BinanceApiException;
 import com.binance.api.client.domain.market.TickerStatistics;
@@ -42,7 +43,7 @@ public class Trader {
 
     private TrailingStop trailingStop;
 
-    private BinanceApiAsyncRestClient client;
+    private BinanceApiRestClient client;
 
     private PositionState state;
 
@@ -62,7 +63,7 @@ public class Trader {
         String loggerName = this.getClass().getSimpleName();
         log = Logger.getLogger("root." + symbol.getSymbol() + "." + loggerName);
         this.trailingStop = new TrailingStop( symbol );
-        this.client = Static.getFactory().newAsyncRestClient();
+        this.client = Static.getFactory().newRestClient();
         this.state = new PositionState();
         this.constraints = Static.constraints.get( symbol.getSymbol() );
         this.nErr = 0;
@@ -129,7 +130,7 @@ public class Trader {
         NewOrder newOrder = marketBuy(this.symbol.getSymbol(), Static.safeDecimal(adjustedQty,  precision ));
         NewOrderResponse response = submit( newOrder, close );
         if ( response == null) {
-            this.log.warning( "Order suspended");
+            this.log.warning( "Order failed. ");
             return false;
         }
         BigDecimal initialStop = close.multiply(Config.STOP_LOSS_PERCENT);
@@ -279,8 +280,9 @@ public class Trader {
     private void update_internal( long orderId ) {
         log.entering(this.getClass().getSimpleName(), "update_internal");
         OrderStatusRequest statusRequest = new OrderStatusRequest( this.symbol.getSymbol(), orderId );
-        log.info( "Getting update: " + statusRequest) ;
-        client.getOrderStatus( statusRequest, this::onOrderUpdate );
+        log.info( "Getting update: " + statusRequest ) ;
+        Order order = client.getOrderStatus( statusRequest );
+        onOrderUpdate( order );
         log.exiting(this.getClass().getSimpleName(), "update_internal");
     }
 
@@ -324,39 +326,27 @@ public class Trader {
         log.entering(this.getClass().getSimpleName(), "cancel");
         CancelOrderRequest cancelOrderRequest = new CancelOrderRequest( this.symbol.getSymbol(), orderId );
         log.info( "Cancelling order: " + cancelOrderRequest );
-        client.cancelOrder( cancelOrderRequest,  response -> this.log.info("Cancel order response: " + response ) );
+        CancelOrderResponse response = client.cancelOrder( cancelOrderRequest );
+        this.log.info("Cancel order response: " + response );
         log.exiting(this.getClass().getSimpleName(), "cancel");
     }
 
     private synchronized NewOrderResponse submit( NewOrder order, BigDecimal close )
-            throws InterruptedException, STBException {
+            throws STBException {
         log.entering(this.getClass().getSimpleName(), "submit");
-        final TransferQueue<NewOrderResponse> queue = new LinkedTransferQueue<>();
+        NewOrderResponse response = null;
         try {
             switch ( Config.TEST_LEVEL ) {
                 case REAL:
-                    client.newOrder(order, r -> {
-                        try {
-                            queue.transfer( r );
-                        }
-                        catch ( InterruptedException e ) {
-                            boolean success = queue.tryTransfer( r );
-
-                            if (!success ) {
-                                this.log.log(Level.SEVERE, "Submission failed", e);
-                            }
-
-                        }
-                    } );
+                    response = client.newOrder(order);
                     break;
                 case FAKEORDER:
                 default:
-                    client.newOrderTest( order, r  ->  queue.offer( fakeResponse( order, close.toString() )) );
+                     client.newOrderTest( order );
+                     response = fakeResponse( order, close.toPlainString() );
                     break;
             }
-            NewOrderResponse response = queue.poll( 40, TimeUnit.SECONDS );
             this.nErr = 0;
-            return response;
         }
 
         catch ( BinanceApiException e) {
@@ -365,14 +355,14 @@ public class Trader {
 
             if (++this.nErr >= Config.MAX_ORDER_RETRY)
                 throw new STBException(70);
-            else
-                return null;
 
         }
 
         finally {
             log.exiting(this.getClass().getSimpleName(), "submit");
         }
+
+        return response;
     }
 
     public void updateState( PositionState.Type state, PositionState.Flags flags ) {
