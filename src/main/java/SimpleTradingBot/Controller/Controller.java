@@ -467,7 +467,7 @@ public class Controller implements BinanceApiCallback<CandlestickEvent> {
         if ( l > 1 )
             next = "," + next.substring( 0, l - 1 );
         else if ( n > 0 )
-            next = ",".repeat( n );
+            next = new String(new char[n]).replace("\0", " ");
 
         this.tsWriter
                 .append( readableDateTime ).append(",")

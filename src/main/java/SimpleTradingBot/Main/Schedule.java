@@ -4,6 +4,7 @@ import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Controller.Controller;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Models.FilterConstraints;
+import SimpleTradingBot.Plugins.CoinDesk;
 import SimpleTradingBot.Services.AccountManager;
 import SimpleTradingBot.Services.HeartBeat;
 import SimpleTradingBot.Util.*;
@@ -30,22 +31,6 @@ import static SimpleTradingBot.Config.Config.MAX_SYMBOLS;
 
 public class Schedule {
 
-    public static void setBudgets() throws Exception {
-        CloseableHttpClient client = HttpClients.createDefault();
-        HttpGet get = new HttpGet("https://api.coindesk.com/v1/bpi/currentprice.json");
-        CloseableHttpResponse response = client.execute(get);
-        Scanner s = new Scanner( response.getEntity().getContent() ).useDelimiter("\\A");
-        String content =  s.hasNext() ? s.next() : "";;
-        JsonObject jsonObject = new JsonParser().parse( content ).getAsJsonObject();
-        JsonObject gbp = jsonObject.get("bpi").getAsJsonObject().get("GBP").getAsJsonObject();
-        BigDecimal price = gbp.get("rate_float").getAsBigDecimal();
-        BigDecimal budget = BigDecimal.valueOf( Config.GBP_PER_TRADE );
-        int precision = 10;
-        price = price.setScale( precision, RoundingMode.HALF_UP );
-        budget = budget.setScale( precision, RoundingMode.HALF_UP );
-        Static.QUOTE_PER_TRADE = budget.divide( price, RoundingMode.HALF_UP );
-    }
-
     public static void main(String[] args) throws Exception {
 
         Static.initRootLoggers();
@@ -57,8 +42,8 @@ public class Schedule {
         parentThread.setName( "Parent" );
         BinanceApiRestClient client = Static.getFactory().newRestClient();
 
-        log.info( "Setting quote budget...");
-        setBudgets();
+        log.info( "Setting quote budget with CoinDesk plugin...");
+        Static.QUOTE_PER_TRADE = CoinDesk.getQuotePerTrade();
         log.info( "Successfully set quote budget" );
 
         /* Check we are in sync and all services are available */
