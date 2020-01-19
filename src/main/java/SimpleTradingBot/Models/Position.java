@@ -28,8 +28,8 @@ public class Position {
 
     public void setUpdatedOrder( Order updatedOrder ) throws STBException {
 
-        if (nUpdate < MAX_ORDER_UPDATES - 1 )
-            this.updatedOrders[ nUpdate++ ] = updatedOrder;
+        if (this.nUpdate < MAX_ORDER_UPDATES - 1 )
+            this.updatedOrders[ this.nUpdate++ ] = updatedOrder;
         else
             throw new STBException( 90 );
     }
@@ -42,6 +42,13 @@ public class Position {
         }
 
         throw new STBException( 100 );
+    }
+
+    public void restartUpdates() {
+        for ( int i = updatedOrders.length - 1; i >= 0; i-- ) {
+            if ( this.updatedOrders[i] != null )
+                this.updatedOrders[i] = null;
+        }
     }
 
     public NewOrder getOriginalOrder() {

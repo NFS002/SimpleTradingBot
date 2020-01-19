@@ -7,7 +7,6 @@ import SimpleTradingBot.Controller.TimeKeeper;
 import SimpleTradingBot.Controller.Trader;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Models.*;
-import SimpleTradingBot.Util.Handler;
 import SimpleTradingBot.Models.QueueMessage;
 import SimpleTradingBot.Util.Static;
 import com.binance.api.client.domain.OrderSide;
@@ -23,52 +22,32 @@ import java.math.MathContext;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static SimpleTradingBot.Util.Static.OUT_DIR;
 import static SimpleTradingBot.Config.Config.MAX_ORDER_UPDATES;
+import static SimpleTradingBot.Util.Static.requestExit;
 
 public class HeartBeat {
 
-    private PrintWriter rtWriter;
-
     private Logger log;
+
+    private ArrayList<Controller> controllers;
 
     /* Singleton pattern */
     private static HeartBeat instance;
 
-    private final OrderHistory orderHistory;
-
-    private BigDecimal netGain;
-
-    private ArrayList<Controller> controllers;
-
-    private Handler handler;
-
-    private HeartBeat() {
+    private HeartBeat(  ) {
         this.controllers = new ArrayList<>();
-        this.orderHistory = new OrderHistory();
-        this.handler = new SimpleTradingBot.Util.Handler( "am");
-        this.log = Logger.getLogger( "root.am" );
+        this.log = Logger.getLogger( "root.hb" );
         this.log.setUseParentHandlers( true );
-        this.netGain = BigDecimal.ZERO;
-        try {
-            this.rtWriter = new PrintWriter(OUT_DIR + "rt.csv");
-            this.rtWriter.append("symbol,openPrice,openTime,buyId,nBuyUpdates," +
-                            "closePrice,closeTime,closeId,nSellUpdates," +
-                            "holdTime,gain,netGain\n").flush();
-        }
-        catch ( IOException e ) {
-            this.log.severe( "Cant create necessary rt files. Skipping rt logging" );
-            this.log.throwing(this.getClass().getSimpleName(), "HeartBeat", e);
-        }
     }
 
-    public static HeartBeat getInstance() {
+    public static HeartBeat getInstance(  ) {
         if (instance == null)
-            instance = new HeartBeat();
+            instance = new HeartBeat( );
         return instance;
     }
 
@@ -99,9 +78,8 @@ public class HeartBeat {
     }
 
     public void deregister( String symbol ) {
-        this.log.entering( this.getClass().getSimpleName(), "close" );
-        this.log.warning( "Attempting deregister of symbol: " + symbol);
 
+        this.log.entering( this.getClass().getSimpleName(), "close" );
         int index = -1;
         for (int i = 0; i < controllers.size(); i++) {
             TickerStatistics registeredSummary = this.controllers.get(i).getSummary();
@@ -113,165 +91,84 @@ public class HeartBeat {
             }
         }
 
-        if ( index != -1 ) {
+        if ( index != -1 )
             this.controllers.remove(index);
-        }
 
         this.log.exiting( this.getClass().getSimpleName(), "close" );
     }
 
-    private void shutdown() {
-        this.log.entering( this.getClass().getName(), "shutdown" );
-        Thread thread = Thread.currentThread();
-        if ( !thread.isInterrupted() )
-            thread.interrupt();
-        System.exit(0);
-        this.log.exiting( this.getClass().getName(), "shutdown" );
-    }
-
-    public void logOrder( String symbol, RoundTrip roundTrip ) {
-
-        ArrayList<RoundTrip> roundTrips = this.orderHistory.get(symbol);
-
-        if (roundTrips == null)
-            roundTrips = new ArrayList<>();
-
-        BigDecimal gain = roundTrip.getGain();
-        this.netGain = this.netGain.add( gain, MathContext.DECIMAL64 );
-        roundTrips.add( roundTrip );
-        this.orderHistory.put( symbol, roundTrips );
-        appendRt( symbol, roundTrip );
-    }
-
-    public void maintenance() {
-        this.log.entering( this.getClass().getSimpleName(), "maintenance" );
-
-        Thread thread = Thread.currentThread();
-        thread.setUncaughtExceptionHandler( handler );
+    public void maintain() {
+        this.log.entering( this.getClass().getSimpleName(), "maintain" );
 
         try {
+            QueueMessage message = Static.checkForDeregister();
 
-            QueueMessage exitMessage = Static.EXIT_QUEUE.poll( 5, TimeUnit.SECONDS );
+            if ( message != null )
+                deregister( message.getSymbol() );
 
-            if ( exitMessage != null
-            && exitMessage.getType() == QueueMessage.Type.INTERRUPT
-            && exitMessage.getSymbol().equals("*")) {
-                this.log.severe( "Received shutdown message");
-                shutdown();
+
+            /* If there no more registered controllers, close the thread */
+            if ( this.controllers.isEmpty()) {
+                this.log.severe( "Controllers are empty, preparing to shutdown" );
+                requestExit( "*" );
+                this.shutdown();
             }
 
-            QueueMessage message = Static.DR_QUEUE.poll( 5, TimeUnit.SECONDS );
-
-            if ( message != null ) {
-                QueueMessage.Type type = message.getType();
-                String symbol = message.getSymbol();
-                switch (type) {
-                    case DEREGISTER:
-                        deregister( symbol );
-                }
-
-                /* If there no more registered controllers, close the thread */
-                if ( this.controllers.isEmpty()) {
-                    this.log.warning( "Preparing to shutdown" );
-                    shutdown();
-                }
+            else if ( this.shouldExit() ) {
+                this.log.severe( "Received exit message, preparing to shutdown" );
+                this.shutdown();
             }
 
-            this.log.info( "Preparing maintenance");
-            maintenance_internal();
-
+            else {
+                this.log.info( "Preparing maintenance");
+                this._maintenance();
+            }
         }
-
         catch ( Throwable e ) {
-
             this.log.log( Level.SEVERE, e.getMessage(), e );
-            this.log.severe("Sending shutdown message" );
-            QueueMessage message = new QueueMessage( QueueMessage.Type.INTERRUPT, "*" );
-            Static.EXIT_QUEUE.offer( message );
-            shutdown();
-
+            this.log.severe("Sending shutdown message, and preparing to shutdown" );
+            requestExit("*");
+            this.shutdown();
         }
 
         finally {
-            this.log.info("Exiting maintenance" );
+            this.log.exiting( this.getClass().getSimpleName(), "maintain" );
         }
-
-        this.log.exiting( this.getClass().getSimpleName(), "maintenance" );
     }
 
-    private void maintenance_internal()  throws STBException {
-        this.log.entering( this.getClass().getSimpleName(), "maintenance_internal");
+    private void shutdown()  {
+        try {
+            Thread.sleep(3000 );
+        }
+        catch ( InterruptedException e ) {
+            log.log( Level.SEVERE, "Shutdown failed", e);
+        }
+        System.exit(0);
+    }
+
+    private void _maintenance()  throws STBException {
+        this.log.entering( this.getClass().getSimpleName(), "_maintenance");
 
         for (Controller controller : this.controllers) {
             TickerStatistics summary = controller.getSummary();
             String symbol = summary.getSymbol();
-            this.log.info( "Performing maintenance for symbol: " + symbol );
+            this.log.info("Performing maintenance for symbol: " + symbol);
 
-            if ( controller.isPaused() ) {
+            if (controller.isPaused())
                 this.log.info("Controller paused (" + symbol + "), skipping maintenance");
-                continue;
-            }
 
-
-            else if ( !checkHearbeat( controller ) )
-                continue;
-
-            this.log.info( "Heartbeat passed for symbol: " + symbol + " .Continuing maintenance" );
-
-            PositionState currentState = controller.getState();
-
-            Trader buyer = controller.getBuyer();
-
-
-            /* There has been no changes to the
-             * position state since last maintenance.
-             *
-             */
-            if ( !currentState.isOutdated() ) {
-                this.log.info( "No maintenance required" );
-                continue;
-            }
-
-            Position buyPosition = buyer.getBuyOrder();
-            Position sellPosition = buyer.getSellOrder();
-
-
-            boolean bNull = buyPosition == null;
-            boolean sNull = sellPosition == null;
-
-
-            /* What stage of the cycle should we actually be maintaining... */
-
-            if (bNull) {
-
-                if (sNull) {
-                    /* These lines should never be executed
-                     * If both positions are null then the state should never be outdated */
-                    log.severe( "Cycle: CLEAR");
-                    controller.updateState(PositionState.Type.CLEAR, PositionState.Flags.NONE);
-                }
-                else
-                    throw new STBException( 200 );
-
-            }
-            else if (sNull || !sellAfterBuy(buyPosition, sellPosition)) {
-                /* BUY/HOLD */
-                log.info( "Cycle: " + "BUY/HOLD");
-                update(controller, OrderSide.BUY);
-            }
+            else if (this.checkHearbeat(controller))
+                this.log.info("Heartbeat passed for symbol: " + symbol + " .Continuing maintenance");
 
             else {
-                log.info( "Cycle: " + "SELL/CLEAR");
-                /* SELL/CLEAR */
-                update(controller, OrderSide.SELL);
+                this.log.severe("Forcing exit of controller: " + symbol );
+                controller.exit();
             }
         }
-
-        log.exiting( this.getClass().getSimpleName(), "maintenance_internal");
+        log.exiting( this.getClass().getSimpleName(), "_maintenance");
     }
 
     private boolean checkHearbeat( Controller controller ) {
-        boolean inTime = true;
         this.log.entering( this.getClass().getSimpleName(), "checkHeartbeat");
         String symbol = controller.getSummary().getSymbol();
         this.log.info( "Checking heartbeat for symbol: " + symbol );
@@ -279,169 +176,25 @@ public class HeartBeat {
         ZonedDateTime endTime = series.getLastBar().getEndTime();
         ZonedDateTime now = ZonedDateTime.now( Config.ZONE_ID );
         long duration = endTime.until( now, ChronoUnit.MILLIS );
-        long intervalToMillis = TimeKeeper.intervalToMillis( Config.CANDLESTICK_INTERVAL );
-        if ( duration > ( intervalToMillis + Config.HB_TOLERANCE ) ) {
-            this.log.severe( "Hearbeat failed for symbol: " + symbol + " . With idle duration of " + duration + "(s). Forcing exit of controller");
-            controller.exit();
-            inTime = false;
-        }
+        long interval = TimeKeeper.intervalToMillis( Config.CANDLESTICK_INTERVAL );
+        boolean inTime = duration < interval + Config.HB_TOLERANCE;
+        if ( !inTime )
+            this.log.severe("Hearbeat failed for symbol: " + symbol + " . With idle duration of " + duration + "(s)");
         this.log.exiting( this.getClass().getSimpleName(), "checkHeartbeat");
         return inTime;
     }
 
-    private PositionState.Flags getFlags(Position position) throws STBException {
 
-        int nUpdates = position.getnUpdate();
-        OrderStatus lastStatus = null;
-        double execQty = 0;
-        double origQty = 0;
-
-        if ( nUpdates == 0) {
-
-            switch (Config.TEST_LEVEL ) {
-                case FAKEORDER:
-                    return PositionState.Flags.NONE;
-                case REAL:
-                    return PositionState.Flags.UPDATE;
-            }
-
+    private boolean shouldExit() {
+        this.log.entering( this.getClass().getSimpleName(), "shouldExit");
+        this.log.info( "Checking exit queue");
+        Optional<QueueMessage> exitMessage = Static.checkForExit( "*" );
+        if ( exitMessage.isPresent() ) {
+            this.log.severe( "Received shutdown message" );
+            return true;
         }
-
-        else {
-
-            Order lastUpdate = position.getUpdatedOrder(nUpdates);
-            execQty = Double.parseDouble(lastUpdate.getExecutedQty());
-            origQty = Double.parseDouble(lastUpdate.getOrigQty());
-            lastStatus = lastUpdate.getStatus();
-
-            if (isFinished(lastStatus) || execQty == origQty)
-                return PositionState.Flags.NONE;
-        }
-
-        if (nUpdates < MAX_ORDER_UPDATES) {
-            switch (lastStatus) {
-                case PARTIALLY_FILLED:
-                case NEW:
-                    return PositionState.Flags.UPDATE;
-                case EXPIRED:
-                case REJECTED:
-                    if (execQty > 0)
-                        return PositionState.Flags.CANCEL;
-                    else
-                        return PositionState.Flags.RESTART;
-                default:
-                    log.severe("Unrecognised order status: " + lastStatus.toString().toUpperCase());
-                    throw new STBException( 210 );
-
-            }
-        }
-        else
-            return PositionState.Flags.CANCEL;
+        this.log.exiting( this.getClass().getSimpleName(), "shouldExit");
+        return false;
     }
 
-    private boolean isFinished(OrderStatus lastStatus) {
-        return (lastStatus == OrderStatus.FILLED
-                || lastStatus == OrderStatus.PENDING_CANCEL
-                || lastStatus == OrderStatus.CANCELED);
-    }
-
-    private PositionState.Type rotateState(PositionState.Type typedState) {
-        if (typedState.isClean())
-            return typedState;
-
-        else {
-
-            if (typedState == PositionState.Type.BUY)
-                return PositionState.Type.HOLD;
-
-            else
-                return PositionState.Type.CLEAR;
-        }
-    }
-
-    private PositionState.Type reverseState(PositionState.Type typedState) {
-        if (typedState.isClean())
-            return typedState;
-
-        else {
-
-            if (typedState == PositionState.Type.BUY)
-                return PositionState.Type.CLEAR;
-            else
-                return PositionState.Type.HOLD;
-        }
-    }
-
-    private void update(Controller controller, OrderSide side ) throws STBException {
-        log.entering( this.getClass().getSimpleName(), "update");
-        PositionState.Type currStateType = controller.getState().getType();
-        PositionState.Type nextStateType = rotateState( currStateType );
-        PositionState.Type prevStateType = reverseState( currStateType );
-        Trader trader = controller.getBuyer();
-        Position position = ( side == OrderSide.BUY ) ? trader.getBuyOrder() : trader.getSellOrder();
-        PositionState.Flags flags = getFlags( position );
-        log.info( "Updating side: " + side + ". Determined flags: " + flags );
-
-        /* Flags should only be set to NONE in the case of a clean state.
-         * However, just because we are in a clean state, it doesnt mean
-         * that the flags are NONE
-         *
-         */
-        switch (flags) {
-            case UPDATE:
-            case CANCEL:
-            case RESTART:
-                controller.updateState( currStateType, flags );
-                break;
-            case NONE:
-                controller.updateState( nextStateType, flags );
-
-                /* Check if the order needs logging */
-                if ( side == OrderSide.SELL && currStateType != nextStateType ) {
-                  String symbol = controller.getSummary().getSymbol();
-                  RoundTrip rt = new RoundTrip( trader.getBuyPrice(), trader.getSellPrice(),
-                          trader.getBuyOrder(), trader.getSellOrder() );
-                  logOrder( symbol, rt );
-                }
-
-                break;
-            case REVERT:
-                controller.updateState( prevStateType, flags );
-                break;
-        }
-        log.exiting( this.getClass().getSimpleName(), "update");
-    }
-
-    private boolean sellAfterBuy(Position buyPosition, Position sellPosition) {
-
-        NewOrder originalBuyOrder = buyPosition.getOriginalOrder();
-        NewOrder originalSellOrder = sellPosition.getOriginalOrder();
-        double buyTimestamp = originalBuyOrder.getTimestamp();
-        double sellTimestamp = originalSellOrder.getTimestamp();
-        return sellTimestamp > buyTimestamp;
-    }
-
-    private void appendRt( String symbol, RoundTrip rt ) {
-        this.log.entering( this.getClass().getSimpleName(), "appendRt");
-
-        if ( rtWriter != null ) {
-            this.log.info( "Logging rt for symbol: " + symbol);
-            this.rtWriter
-                    .append(symbol).append( "," )
-                    .append( rt.getOpenPrice().toPlainString() ).append( "," )
-                    .append( String.valueOf( rt.getOpenTime() ) ).append( "," )
-                    .append( String.valueOf( rt.getBuyId() ) ).append( "," )
-                    .append( String.valueOf( rt.getnBuyUpdates()) ).append( "," )
-                    .append( rt.getClosePrice().toPlainString() ).append( "," )
-                    .append( String.valueOf( rt.getClosePrice() ) ).append( "," )
-                    .append( String.valueOf( rt.getSellId()) ).append( "," )
-                    .append( String.valueOf(rt.getnSellUpdates()) ).append( "," )
-                    .append( String.valueOf( rt.getHoldTime().getSeconds()) ).append(",")
-                    .append( rt.getGain().toPlainString() ).append( "," )
-                    .append( this.netGain.toPlainString() )
-                    .append("\n").flush();
-        }
-
-        this.log.exiting( this.getClass().getSimpleName(), "appendRt");
-    }
 }

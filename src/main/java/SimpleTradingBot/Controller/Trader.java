@@ -2,6 +2,7 @@ package SimpleTradingBot.Controller;
 
 import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Exception.STBException;
+import SimpleTradingBot.Models.Cycle;
 import SimpleTradingBot.Models.FilterConstraints;
 import SimpleTradingBot.Models.PositionState;
 import SimpleTradingBot.Models.Position;
@@ -16,20 +17,19 @@ import com.binance.api.client.domain.account.request.OrderStatusRequest;
 import com.binance.api.client.exception.BinanceApiException;
 import com.binance.api.client.domain.market.TickerStatistics;
 import org.ta4j.core.Bar;
-import org.ta4j.core.num.Num;
-import org.ta4j.core.num.PrecisionNum;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.concurrent.LinkedTransferQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TransferQueue;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static com.binance.api.client.domain.account.NewOrder.marketBuy;
 import static com.binance.api.client.domain.account.NewOrder.marketSell;
-
+import static SimpleTradingBot.Models.PositionState.Phase.*;
+import static SimpleTradingBot.Models.PositionState.Flags.*;
+import static SimpleTradingBot.test.FakeOrderResponses.*;
+import static SimpleTradingBot.Config.Config.MAX_ORDER_UPDATES;
 
 public class Trader {
 
@@ -37,9 +37,7 @@ public class Trader {
 
     private TickerStatistics symbol;
 
-    private Position buyOrder;
-
-    private Position sellOrder;
+    private final ArrayList<Cycle> cycles;
 
     private TrailingStop trailingStop;
 
@@ -49,19 +47,14 @@ public class Trader {
 
     FilterConstraints constraints;
 
-    /* For market orders */
-    private BigDecimal buyPrice;
-
-    /* For market orders */
-    private BigDecimal sellPrice;
-
     private int nErr;
 
     /* Constructor */
     Trader(  Controller controller ) {
-        this.symbol = controller.getSummary();
         String loggerName = this.getClass().getSimpleName();
-        log = Logger.getLogger("root." + symbol.getSymbol() + "." + loggerName);
+        this.symbol = controller.getSummary();
+        this.cycles = new ArrayList<>();
+        this.log = Logger.getLogger("root." + symbol.getSymbol() + "." + loggerName);
         this.trailingStop = new TrailingStop( symbol );
         this.client = Static.getFactory().newRestClient();
         this.state = new PositionState();
@@ -71,268 +64,306 @@ public class Trader {
 
     /* Getters */
 
-    public Position getBuyOrder() {
-        return buyOrder;
+    public ArrayList<Cycle> getCycles() {
+        return cycles;
     }
 
     public TrailingStop getTrailingStop() {
         return trailingStop;
     }
 
-    public Position getSellOrder() {
-        return sellOrder;
-    }
-
     public PositionState getState() {
         return state;
     }
 
-    public BigDecimal getBuyPrice() {
-        return buyPrice;
-    }
-
-    public BigDecimal getSellPrice() {
-        return sellPrice;
-    }
     /* Methods */
-
     boolean shouldOpen( ) {
-        log.entering(this.getClass().getSimpleName(),"shouldOpen");
-        PositionState.Type stateType = this.state.getType();
-        boolean updated = this.state.isUpdated() || this.state.isStable();
-        boolean clear = (stateType == PositionState.Type.CLEAR ) || ( stateType == PositionState.Type.SELL );
-        this.log.info( String.format("State type: %s (%s), updated: %s", stateType, clear, updated));
-        log.exiting(this.getClass().getSimpleName(),"shouldOpen");
-        return clear && updated;
+        this.log.entering(this.getClass().getSimpleName(),"shouldOpen");
+        boolean clear = this.state.getPhase() == PositionState.Phase.CLEAR;
+        this.log.info( "State: " + this.state );
+        this.log.exiting(this.getClass().getSimpleName(),"shouldOpen");
+        return clear;
     }
 
     boolean shouldClose( Bar bar ) {
         log.entering(this.getClass().getSimpleName(), "shouldClose");
-        Num lastPrice = bar.getClosePrice();
+        BigDecimal lastPrice = (BigDecimal) bar.getClosePrice().getDelegate();
         BigDecimal stopLoss = this.trailingStop.getStopLoss();
-        PrecisionNum precisionStopLoss = PrecisionNum.valueOf( stopLoss );
-        boolean breached = lastPrice.isLessThanOrEqual( precisionStopLoss );
-        log.info("Last price: " + lastPrice + ". Stop loss: "  + stopLoss + ". Breached: " + breached );
-        log.exiting(this.getClass().getSimpleName(), "shouldClose");
+        boolean breached = lastPrice.compareTo( stopLoss ) <= 0;
+        this.log.info("Last price: " + lastPrice + ". Stop loss: "  + stopLoss + ". Breached: " + breached );
+        this.log.exiting(this.getClass().getSimpleName(), "shouldClose");
         if ( Config.FORCE_CLOSE )
             return true;
         else
             return breached;
     }
 
-    boolean open( BigDecimal close ) throws InterruptedException, STBException {
-        log.entering(this.getClass().getSimpleName(), "open");
-        BigDecimal baseQty = AccountManager.getNextQty();
+    boolean open( BigDecimal close ) throws STBException {
+        this.log.entering(this.getClass().getSimpleName(), "open");
+        AccountManager am = AccountManager.getInstance();
+        BigDecimal baseQty = am.getNextQty();
         BigDecimal proposedQty = baseQty.divide( close, RoundingMode.HALF_DOWN);
         BigDecimal adjustedQty = this.constraints.adjustQty( proposedQty );
         this.log.info( "Quantity : " + proposedQty + " -> " + adjustedQty);
-        int precision = this.constraints.getBASE_PRECISION() - 2;
-        NewOrder newOrder = marketBuy(this.symbol.getSymbol(), Static.safeDecimal(adjustedQty,  precision ));
-        NewOrderResponse response = submit( newOrder, close );
+        int precision = this.constraints.getBasePrecision() - 2;
+        NewOrder newOrder = marketBuy( this.symbol.getSymbol(), Static.safeDecimal(adjustedQty,  precision ) );
+        NewOrderResponse response = trySubmit( newOrder, close );
         if ( response == null) {
-            this.log.warning( "Order failed. ");
+            this.log.warning( "Order failed");
             return false;
         }
-        BigDecimal initialStop = close.multiply(Config.STOP_LOSS_PERCENT);
-        this.trailingStop.setStopLoss(initialStop);
+        else {
+            BigDecimal initialStop = close.multiply(Config.STOP_LOSS_PERCENT);
+            this.trailingStop.setStopLoss(initialStop);
+            Position position = new Position(newOrder, response);
+            Cycle newCycle = new Cycle( position, close );
+            this.cycles.add( newCycle );
+        }
         this.log.info(newOrder.toString());
         this.log.info(response.toString());
-        this.buyOrder = new Position(newOrder, response);
-        this.buyPrice = close;
-        log.exiting(this.getClass().getSimpleName(), "open");
+        this.log.exiting(this.getClass().getSimpleName(), "open");
         return true;
     }
 
-    boolean close( Bar lastBar ) throws InterruptedException, STBException {
-        log.entering(this.getClass().getSimpleName(), "close");
-
-        Num closePrice = lastBar.getClosePrice();
-        BigDecimal close = new BigDecimal( closePrice.toString() );
-
+    void close( Bar lastBar ) {
+        this.log.entering(this.getClass().getSimpleName(), "close");
+        BigDecimal close = (BigDecimal) lastBar.getClosePrice().getDelegate();
         long currTimeMillis = System.currentTimeMillis();
         String dateTime = Static.toReadableDate( currTimeMillis );
-        /* Get executed qty */
+        /* Get executed qty, or just use all our free balance */
         String symbol = this.symbol.getSymbol();
         String qty = getSellQty();
         NewOrder sellOrder = marketSell( symbol, qty );
-        NewOrderResponse sellOrderResponse = submit( sellOrder, close );
+        NewOrderResponse sellOrderResponse = trySubmit( sellOrder, close );
         if ( sellOrderResponse == null ) {
             this.log.warning( "Postponed submission");
-            return false;
         }
-        this.sellPrice = close;
-        /* Or just use all our free balance
-        Account myAccount = client.getAccount();
-        AssetBalance balance = myAccount.getAssetBalance( assetSymbol );
-        String free = balance.getFree(); */
-
-        this.log.info( sellOrder.toString() );
-        this.log.info( sellOrderResponse.toString() );
-        this.log.info("Closed at: " + closePrice + ", " + dateTime );
-        this.sellOrder = new Position( sellOrder, sellOrderResponse );
-        this.trailingStop.reset( );
+        else {
+            this.log.info("Closed at: " + close + ", " + dateTime);
+            this.trailingStop.reset( );
+            Cycle lastCycle = this.cycles.get( this.cycles.size() - 1 );
+            Position sellPosition = new Position( sellOrder, sellOrderResponse );
+            lastCycle.setSellPosition( sellPosition, close );
+        }
+        this.log.info( String.format( "%s", sellOrder ) );
+        this.log.info( String.format( "%s", sellOrderResponse ));
         log.exiting(this.getClass().getSimpleName(), "close");
-        return true;
     }
 
     private String getSellQty( ) {
-        int nUpdates = buyOrder.getnUpdate();
+        Cycle currentCycle = this.cycles.get( this.cycles.size() - 1 );
+        Position currentBuyPosition = currentCycle.getBuyPosition();
         switch ( Config.TEST_LEVEL ) {
             case REAL:
-                Order buyOrder = this.buyOrder.getUpdatedOrder( nUpdates );
+                Order buyOrder = currentBuyPosition.getLastUpdate();
                 return buyOrder.getExecutedQty();
             case FAKEORDER:
                 default:
-                NewOrder order = this.buyOrder.getOriginalOrder();
+                NewOrder order = currentBuyPosition.getOriginalOrder();
                 return order.getQuantity();
         }
     }
 
-    void update( Bar bar ) throws InterruptedException, STBException {
-        log.entering(this.getClass().getSimpleName(), "update" );
-        BigDecimal close = (BigDecimal) bar.getClosePrice().getDelegate();
+    private void findAndSetState( int nCycles ){
+        this.log.entering( this.getClass().getSimpleName(), "findAndSetState");
+        this.log.info( String.format( "Finding state, nCycles: %d", nCycles));
+        Cycle lastCycle = this.cycles.get( nCycles - 1 );
+        Position lastBuy = lastCycle.getBuyPosition();
+        Position lastSell = lastCycle.getSellPosition();
+        PositionState.Phase phase;
+        if (lastCycle.getSellPosition() == null) {
+            this.findAndSetFlags(lastBuy);
+            if (this.state.getFlags() == NONE)
+                phase = HOLD;
+            else
+                phase = BUY;
+        }
+        else {
+            this.findAndSetFlags(lastSell);
+            if (this.state.getFlags() == NONE) {
+                if (this.state.getPhase() != CLEAR)
+                    Static.appendRt(lastCycle);
+                phase = CLEAR;
+            } else
+                phase = SELL;
+        }
+        this.log.info("Determined phase: " + phase);
+        this.state.setPhase(phase);
+        this.log.exiting( this.getClass().getSimpleName(), "findAndSetState");
+    }
 
-        if ( Config.TRAILING_STOP && this.state.isBuyOrHold() )
-            this.trailingStop.update( bar );
-
-        if ( this.state.isUpdated() ) {
-            PositionState.Type type = this.state.getType();
-            log.info( "Updating position: " + type );
-
-            switch ( type ) {
-                case HOLD:
-                case BUY:
-                    update( OrderSide.BUY, close );
+    private void findAndSetFlags( Position position ) {
+        this.log.entering( this.getClass().getSimpleName(), "findAndSetFlags");
+        int nUpdates = position.getnUpdate();
+        this.log.info( String.format("Finding phase and flags, nUpdates: %d", nUpdates) );
+        PositionState.Flags flags = null;
+        if ( nUpdates == 0 )
+            flags = UPDATE;
+        else if ( nUpdates == MAX_ORDER_UPDATES - 2 )
+            flags = CANCEL;
+        else if ( nUpdates == MAX_ORDER_UPDATES - 1)
+            flags = NONE;
+        else {
+            Order lastOrder = position.getLastUpdate();
+            OrderStatus lastStatus = lastOrder.getStatus();
+            this.log.info( String.format("Last update status: %s", lastStatus));
+            switch ( lastStatus ) {
+                case NEW:
+                case PARTIALLY_FILLED:
+                case PENDING_CANCEL:
+                    flags = UPDATE;
                     break;
-                case CLEAR:
-                case SELL:
-                    update( OrderSide.SELL, close );
+                case REJECTED:
+                case EXPIRED:
+                    flags = REVERT;
                     break;
-                default:
-                    log.severe( "Skipping update of open position: " + type);
+                case FILLED:
+                case CANCELED:
+                    flags = NONE;
             }
         }
-        else
-            log.info("Position not maintained, skipping update.");
+        this.log.info( "Found and set flags: " + flags );
+        this.state.setFlags( flags );
+        this.log.exiting( this.getClass().getSimpleName(), "findAndSetFlags");
+    }
 
+    void update( Bar bar )  {
+        log.entering(this.getClass().getSimpleName(), "update" );
+        int nCycles = this.cycles.size();
+        if ( nCycles > 0 ) {
+            this.findAndSetState( nCycles );
+            BigDecimal close = (BigDecimal) bar.getClosePrice().getDelegate();
+            this.updateStopLoss(close);
+            if (this.state.getFlags() != NONE) {
+                PositionState.Phase phase = this.state.getPhase();
+                switch (phase) {
+                    case HOLD:
+                    case BUY:
+                        update( OrderSide.BUY, close);
+                        break;
+                    case CLEAR:
+                    case SELL:
+                        update( OrderSide.SELL, close );
+                }
+            } else
+                this.log.info("No further update required");
+        }
+        else
+            this.log.info("Cycles are empty, no update or change in state required");
         log.exiting(this.getClass().getSimpleName(), "update");
     }
 
-    private void update( OrderSide side, BigDecimal close ) throws InterruptedException, STBException {
+    private void updateStopLoss( BigDecimal close ) {
+        this.log.entering(this.getClass().getSimpleName(), "updateStopLoss");
+        this.log.info("Updating stop loss");
+        if ( Config.TRAILING_STOP && this.state.isBuyOrHold() )
+            this.trailingStop.update( close );
+        this.log.exiting(this.getClass().getSimpleName(), "updateStopLoss");
+    }
 
-        log.entering(this.getClass().getSimpleName(), "update: " + side);
-        log.info("Updating side: " + side);
-
-        Position position = ( side == OrderSide.SELL ) ? this.sellOrder : this.buyOrder;
+    private void update( OrderSide side, BigDecimal close ) throws STBException {
+        this.log.entering(this.getClass().getSimpleName(), "update",side);
+        int nCycles = this.cycles.size();
+        Cycle lastCycle = this.cycles.get( nCycles - 1 );
+        Position position = ( side == OrderSide.BUY ) ? lastCycle.getBuyPosition() : lastCycle.getSellPosition();
         NewOrderResponse originalResponse = position.getOriginalOrderResponse();
-        OrderStatus oldStatus = originalResponse.getStatus();
+        PositionState.Flags flags = this.state.getFlags();
         long orderId = originalResponse.getOrderId();
+        this.logPreUpdate( side, position, orderId, originalResponse );
+
+        switch ( flags ) {
+            case RESTART:
+                restart( position, close );
+                break;
+            case REVERT:
+                this.revertCycle( nCycles - 1 );
+                break;
+            case CANCEL:
+                cancel( orderId );
+                break;
+            case UPDATE:
+                _update( position, originalResponse, orderId );
+                break;
+
+        }
+        log.exiting( this.getClass().getSimpleName(), "update", side );
+    }
+
+    private void revertCycle( int i ) {
+        this.log.entering( this.getClass().getSimpleName(), "revertCycle");
+        this.log.info("Reverting cycle: " + i);
+        this.cycles.set( i - 1, null);
+        this.state.setFlags( NONE );
+        this.state.setPhase( CLEAR );
+        this.log.entering( this.getClass().getSimpleName(), "revertCycle");
+
+    }
+
+    private void logPreUpdate( OrderSide side, Position position, long orderId, NewOrderResponse originalResponse ) {
+        this.log.entering( this.getClass().getSimpleName(), "logPreUpdate");
+        OrderStatus oldStatus = originalResponse.getStatus();
         long timestamp = originalResponse.getTransactTime();
         String time = Static.toReadableDate(timestamp);
         PositionState.Flags flags = this.state.getFlags();
         int nUpdates = position.getnUpdate();
+        this.log.info("Updating position: " + orderId
+                + ", nUpdates: " + nUpdates
+                + ", side: " + side
+                + ", placed at: " + time
+                + ", original status: " + oldStatus
+                + ", flags: " + flags);
 
         if ( nUpdates > 0 ) {
-            Order recentUpdate = position.getUpdatedOrder(nUpdates);
 
+            Order recentUpdate = position.getLastUpdate();
             long updateTime = recentUpdate.getTime();
             String updatedTime = Static.toReadableDate( updateTime );
             OrderStatus updatedStatus = recentUpdate.getStatus();
 
-            log.info("Updating position: " + orderId + "," +
-                    " side: " + side + ", placed at: " + time + "," +
-                    " update at " + updatedTime + ", original status: " + oldStatus + ", " +
-                    " updated status: " + updatedStatus + ", flags: " + flags);
+            this.log.info("Update at " + updatedTime
+                    + ", updated status: " + updatedStatus);
         }
-
-        else {
-
-            log.info("Updating position: " + orderId + "," +
-                    "nUpdates: " + nUpdates + "," +
-                    " side: " + side + ", placed at: " + time + "," +
-                    " original status: " + oldStatus + ", "
-                    + " flags: " + flags);
-        }
-
-
-        switch ( flags ) {
-            case RESTART:
-            case REVERT:
-                if (restart( side, close ))
-                    this.state.setAsOutdated();
-                break;
-            case CANCEL:
-                cancel( orderId );
-                this.state.setAsOutdated();
-            case UPDATE:
-                update_internal( orderId );
-                this.state.setAsOutdated();
-                break;
-            case NONE:
-                break;
-                default:
-                    this.log.severe("Unknown flags: " + flags);
-
-        }
-        log.exiting( this.getClass().getSimpleName(), "update: " + side );
+        this.log.exiting( this.getClass().getSimpleName(), "logPreUpdate");
     }
 
-    private void update_internal( long orderId ) {
-        log.entering(this.getClass().getSimpleName(), "update_internal");
-        OrderStatusRequest statusRequest = new OrderStatusRequest( this.symbol.getSymbol(), orderId );
-        log.info( "Getting update: " + statusRequest ) ;
-        Order order = client.getOrderStatus( statusRequest );
-        onOrderUpdate( order );
-        log.exiting(this.getClass().getSimpleName(), "update_internal");
-    }
+    private void _update(Position position, NewOrderResponse response, long orderId ) {
+        this.log.entering(this.getClass().getSimpleName(), "_update");
+        OrderStatusRequest statusRequest = new OrderStatusRequest( response.getSymbol(), orderId );
+        this.log.info( "Getting update: " + statusRequest );
+        Order order;
+        switch (  Config.TEST_LEVEL ) {
+            case REAL: order = this.client.getOrderStatus( statusRequest );
+            break;
 
-    private void onOrderUpdate( Order order ) throws STBException {
-        this.log.entering( this.getClass().getSimpleName(), "onOrderUpdate" );
-        OrderSide side = order.getSide();
-        log.info( "Got update: " + order );
-        Position position = ( side == OrderSide.BUY ) ? this.buyOrder : this.sellOrder;
+            default:
+            case FAKEORDER: order = getNextUpdate( response );
+        }
+        this.log.info( "Got update: " + order );
         position.setUpdatedOrder( order );
-        this.log.exiting( this.getClass().getSimpleName(), "onOrderUpdate" );
+        log.exiting(this.getClass().getSimpleName(), "_update");
     }
 
-    private boolean restart( OrderSide side, BigDecimal close )
-        throws InterruptedException, STBException{
-        log.entering(this.getClass().getSimpleName(), "restart" );
-        Position position = ( side == OrderSide.BUY ) ? this.buyOrder : this.sellOrder;
+    private void restart( Position position, BigDecimal close ) {
+        this.log.entering(this.getClass().getSimpleName(), "restart" );
         NewOrder newOrder = position.getOriginalOrder();
-        log.info("Restarting order: " + newOrder);
-        NewOrderResponse response = submit( newOrder, close  );
-
-        if ( response == null ) {
-            this.log.info( "Postponing restart");
-            return false;
-        }
-
-        this.log.info( "Restarted order: " + response );
+        this.log.info("Restarting order: " + newOrder);
+        NewOrderResponse response = trySubmit( newOrder, close  );
+        this.log.info( "Got response: " + response );
         position.setOriginalOrderResponse( response );
-        log.exiting(this.getClass().getSimpleName(), "restart" );
-        return true;
-    }
-
-
-    void cancel( OrderSide side ) {
-        NewOrderResponse buyResponse = this.buyOrder.getOriginalOrderResponse();
-        NewOrderResponse sellResponse = this.sellOrder.getOriginalOrderResponse();
-        long orderId = ( side == OrderSide.BUY ) ? buyResponse.getOrderId() : sellResponse.getOrderId();
-        cancel( orderId );
+        position.restartUpdates();
+        this.log.exiting(this.getClass().getSimpleName(), "restart" );
     }
 
     private void cancel( long orderId ) {
         log.entering(this.getClass().getSimpleName(), "cancel");
         CancelOrderRequest cancelOrderRequest = new CancelOrderRequest( this.symbol.getSymbol(), orderId );
         log.info( "Cancelling order: " + cancelOrderRequest );
-        CancelOrderResponse response = client.cancelOrder( cancelOrderRequest );
+        CancelOrderResponse response = this.client.cancelOrder( cancelOrderRequest );
         this.log.info("Cancel order response: " + response );
         log.exiting(this.getClass().getSimpleName(), "cancel");
     }
 
-    private synchronized NewOrderResponse submit( NewOrder order, BigDecimal close )
-            throws STBException {
+    private synchronized NewOrderResponse trySubmit(NewOrder order, BigDecimal close )  {
         log.entering(this.getClass().getSimpleName(), "submit");
         NewOrderResponse response = null;
         try {
@@ -343,17 +374,17 @@ public class Trader {
                 case FAKEORDER:
                 default:
                      client.newOrderTest( order );
-                     response = fakeResponse( order, close.toPlainString() );
-                    break;
+                     response = fakeNewResponse( order, close.toPlainString() );
+                     break;
             }
             this.nErr = 0;
         }
 
         catch ( BinanceApiException e) {
 
-            log.log(Level.WARNING, "Failed submission, attempt: " + this.nErr, e);
+            log.log(Level.WARNING, "Failed submission, attempt: " + ++this.nErr, e);
 
-            if (++this.nErr >= Config.MAX_ORDER_RETRY)
+            if (this.nErr >= Config.MAX_ORDER_RETRY)
                 throw new STBException(70);
 
         }
@@ -365,37 +396,13 @@ public class Trader {
         return response;
     }
 
-    public void updateState( PositionState.Type state, PositionState.Flags flags ) {
+    public void updateState(PositionState.Phase state, PositionState.Flags flags ) {
         this.log.entering( this.getClass().getSimpleName(), "updateState");
         PositionState currentState = getState();
-        PositionState.Type type = currentState.getType();
+        PositionState.Phase type = currentState.getPhase();
         PositionState.Flags currentFlags = currentState.getFlags();
         this.log.info( "Updating state to: " + state + ", " + flags + ", from current state: " + type + ", " + currentFlags);
         this.state.maintain( state, flags );
         this.log.exiting( this.getClass().getSimpleName(), "updateState");
-    }
-
-    private NewOrderResponse fakeResponse( NewOrder newOrder, String price ) {
-        NewOrderResponse response = new NewOrderResponse();
-        String qty = newOrder.getQuantity();
-        long now = System.currentTimeMillis();
-        response.setExecutedQty( qty );
-        response.setPrice( newOrder.getPrice() );
-        response.setTransactTime( now );
-        response.setPrice( price );
-        response.setOrigQty( qty );
-        response.setOrderId( 12345L );
-        response.setSide( newOrder.getSide() );
-        response.setStatus( OrderStatus.FILLED );
-        response.setTimeInForce( newOrder.getTimeInForce() );
-        return response;
-    }
-
-    private void on(Order order) {
-        try {
-            onOrderUpdate(order);
-        } catch (STBException e) {
-            throw e;
-        }
     }
 }

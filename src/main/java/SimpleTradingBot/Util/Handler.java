@@ -18,8 +18,7 @@ public class Handler implements Thread.UncaughtExceptionHandler {
         Logger log = Logger.getLogger( "root." + symbol );
         log.entering( this.getClass().getSimpleName(), "uncaughtException");
         log.log(Level.SEVERE, "Uncaught Exception. Sending exit message and exiting thread now", throwable);
-        QueueMessage message = new QueueMessage(QueueMessage.Type.INTERRUPT, "*");
-        Static.EXIT_QUEUE.offer( message );
+        Static.requestExit("*");
         if ( !Thread.currentThread().isInterrupted() )
             Thread.currentThread().interrupt();
         System.exit(0);

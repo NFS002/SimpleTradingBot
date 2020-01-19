@@ -4,14 +4,11 @@ import java.math.BigDecimal;
 
 public class QueueMessage implements Comparable<QueueMessage> {
 
-    private final Type type;
-
     private final String symbol;
 
     private BigDecimal requestedQty;
 
-    public QueueMessage(Type type, String symbol) {
-        this.type = type;
+    public QueueMessage( String symbol) {
         this.symbol = symbol;
     }
 
@@ -23,10 +20,6 @@ public class QueueMessage implements Comparable<QueueMessage> {
         return this.requestedQty;
     }
 
-    public Type getType() {
-        return type;
-    }
-
     public String getSymbol() {
         return symbol;
     }
@@ -36,10 +29,4 @@ public class QueueMessage implements Comparable<QueueMessage> {
         return (this.getSymbol().equals("*")) ? 1 : 0;
     }
 
-    public enum Type {
-
-        INTERRUPT,
-
-        DEREGISTER,
-    }
 }

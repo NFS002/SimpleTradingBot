@@ -31,11 +31,7 @@ public class TAbot {
         return nFields;
     }
 
-    public void setnFields(int nFields) {
-        this.nFields = nFields;
-    }
-
-    public TAbot(TickerStatistics statistics ) {
+    public TAbot( TickerStatistics statistics ) {
         String loggerName = this.getClass().getSimpleName();
         this.statistics = statistics;
         this.log = Logger.getLogger( "root." + statistics.getSymbol() + "." + loggerName );
@@ -56,7 +52,8 @@ public class TAbot {
 
 
 
-    public boolean isSatisfied( TimeSeries series  ) {
+    public boolean isSatisfied( TimeSeries series  )  {
+
         boolean satisfied = true;
         int index = series.getEndIndex();
         StringBuilder builder = new StringBuilder();
@@ -68,12 +65,11 @@ public class TAbot {
             satisfied = rule.isSatisfied( index );
             this.log.info( "Rule " + r.getName() + " applied. Satisfied: " + satisfied );
 
-            if ( ! satisfied )
+            if ( !satisfied )
                 break;
         }
 
         this.next = builder.toString();
         return satisfied;
     }
-
 }

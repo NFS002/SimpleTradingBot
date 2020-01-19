@@ -6,8 +6,11 @@ import com.binance.api.client.domain.general.*;
 import com.binance.api.client.domain.market.TickerStatistics;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.List;
+
+import static SimpleTradingBot.Util.Static.getQuoteFromSymbol;
 
 public class SymbolPredicate implements java.util.function.Predicate<TickerStatistics> {
 
@@ -24,38 +27,39 @@ public class SymbolPredicate implements java.util.function.Predicate<TickerStati
         /* Volume */
         BigDecimal volume = new BigDecimal( statistics.getVolume() );
         if ( volume.compareTo( new BigDecimal( Config.MIN_VOLUME ) ) <= 0)
-            return false;
+            return true;
 
         /* Symbol Status */
         SymbolInfo info = this.exchangeInfo.getSymbolInfo( symbol );
         SymbolStatus symbolStatus = info.getStatus();
         if (symbolStatus != SymbolStatus.TRADING)
-            return false;
+            return true;
 
-        /* Base Asset */
-        String quote = Static.getQuoteFromSymbol( symbol );
-        if ( ! quote.equals( Config.QUOTE_ASSET) )
-            return false;
+        /* Min price change percent */
+        SymbolFilter f = info.getSymbolFilter( FilterType.PRICE_FILTER );
+        if ( !this.minPriceChangePercent( f ) )
+            return true;
+
+        /* Quote Asset */
+        String quote = getQuoteFromSymbol( symbol );
+        if ( !quote.equals( Config.QUOTE_ASSET ) )
+            return true;
 
         /* Order types */
         List<OrderType> orderTypes = info.getOrderTypes();
-        return !orderTypes.contains( OrderType.MARKET );
-
+        return !orderTypes.contains(OrderType.MARKET);
     }
 
-    public static void removeDuplicateQuotes( List<TickerStatistics> statistics ) {
-        List<String> assets = new ArrayList<>();
-        int nStatistics = statistics.size();
-        for ( int i = 0; i < nStatistics; i++ ) {
-            TickerStatistics statistic = statistics.get( i );
-            String symbol = statistic.getSymbol();
-            String asset = Static.getBaseFromSymbol( symbol );
-            if ( assets.contains( asset ) )
-                statistics.set( i, null);
-            else
-                assets.add( asset );
-        }
-        statistics.removeIf( (s) -> s == null);
+    private boolean minPriceChangePercent(SymbolFilter f ) {
+        BigDecimal minPrice = new BigDecimal( f.getMinPrice() );
+        BigDecimal maxPrice = new BigDecimal( f.getMaxPrice() );
+        if ( minPrice.compareTo(BigDecimal.ZERO) <= 0
+            || maxPrice.compareTo(BigDecimal.ZERO) <= 0)
+            return false;
+        BigDecimal range = maxPrice.subtract( minPrice, MathContext.DECIMAL64 );
+        BigDecimal tickSize = new BigDecimal( f.getTickSize() );
+        BigDecimal tickSizePercent = tickSize.divide( range, MathContext.DECIMAL64 ).multiply( new BigDecimal( "100" ), MathContext.DECIMAL64);
+        return tickSizePercent.compareTo( Config.MAX_PRICE_CHANGE_PERCENT) < 0;
     }
 
     @Override

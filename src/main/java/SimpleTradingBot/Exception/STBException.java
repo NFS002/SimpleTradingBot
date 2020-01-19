@@ -9,12 +9,16 @@ public class STBException extends RuntimeException {
     private final int statusCode;
 
     public STBException( int statusCode ) {
-        this.message = getMessage( statusCode );
         this.statusCode = statusCode;
+        this.message = getMessage_internal( );
     }
 
-    private String getMessage( int statusCode )  {
-        switch ( statusCode ) {
+    private String getMessage_internal( )  {
+        switch ( this.statusCode ) {
+
+            case 0: return "SHUTDOWN";
+
+            case 30:    return "CONF_CREATE";
 
             case 40:    return "NO_LOT_FILTER";
 
@@ -50,7 +54,7 @@ public class STBException extends RuntimeException {
 
     @Override
     public String getMessage() {
-        return this.statusCode + ":" + this.message;
+        return this.statusCode + ": " + this.message;
     }
 
     public int getStatusCode() {

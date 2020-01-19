@@ -2,15 +2,19 @@ package SimpleTradingBot.Util;
 import SimpleTradingBot.Config.ApiKeys;
 import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Exception.STBException;
+import SimpleTradingBot.Models.Cycle;
 import SimpleTradingBot.Models.FilterConstraints;
 import SimpleTradingBot.Models.QueueMessage;
 import com.binance.api.client.BinanceApiClientFactory;
+import com.binance.api.client.domain.account.NewOrder;
 import com.binance.api.client.domain.general.ExchangeInfo;
 import com.binance.api.client.domain.general.SymbolInfo;
-import org.ta4j.core.num.Num;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -18,6 +22,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -25,10 +30,9 @@ import java.util.logging.*;
 
 public class Static {
 
-
     public static String OUT_DIR;
 
-    public static BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance( ApiKeys.API_KEY, ApiKeys.SECRET_KEY);
+    public static BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance( ApiKeys.BINANCE_API_KEY, ApiKeys.BINANCE_SECRET_KEY);
 
     public static DateTimeFormatter timeFormatter = DateTimeFormatter.ofLocalizedTime( FormatStyle.SHORT );
 
@@ -38,41 +42,73 @@ public class Static {
 
     public static ExchangeInfo exchangeInfo;
 
+    private static Logger log;
+
+    private static BigDecimal netGain = BigDecimal.ZERO;
+
+    private static PrintWriter rtWriter;
+
     public static BigDecimal QUOTE_PER_TRADE;
 
-    public final static BlockingQueue<QueueMessage> DR_QUEUE = new LinkedBlockingQueue<>();
+    private final static BlockingQueue<QueueMessage> DR_QUEUE = new LinkedBlockingQueue<>();
 
-    public final static PriorityBlockingQueue<QueueMessage> EXIT_QUEUE = new PriorityBlockingQueue<>();
+    private final static PriorityBlockingQueue<QueueMessage> EXIT_QUEUE = new PriorityBlockingQueue<>();
 
     public static BinanceApiClientFactory getFactory() {
         return factory;
     }
 
-    public static boolean checkRootDir( int n ) {
+    static {
+        initRootLoggers();
+        initRtWriter();
+        Config.print();
+    }
+
+    private static void initRtWriter() {
+        try {
+            rtWriter = new PrintWriter(OUT_DIR + "rt.csv");
+            rtWriter.append("symbol,openPrice,openTime,buyId,nBuyUpdates," +
+                    "closePrice,closeTime,closeId,nSellUpdates," +
+                    "holdTime,gain,netGain\n").flush();
+        }
+        catch ( IOException e ) {
+            log.warning( "Cant create necessary rt files. Skipping rt logging" );
+        }
+    }
+
+
+    private static boolean checkRootDir( int n ) {
         OUT_DIR = "out-" + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + "-(" + n + ")/";
         File f = new File( OUT_DIR );
         return f.exists();
     }
 
 
-    public static void initRootLoggers() throws Exception {
+    private static void initRootLoggers()  {
         for  ( int n = 1; checkRootDir( n ); n++ );
-        Logger log = Logger.getLogger( "root" );
+
+        log = Logger.getLogger( "root" );
         log.setUseParentHandlers( false );
         File dir = new File( OUT_DIR );
         if ( !dir.mkdirs() )
             throw new STBException( 50 );
+
         XMLFormatter formatter = new XMLFormatter();
-        FileHandler fileHandler = new FileHandler( dir + "/debug.log");
-        fileHandler.setLevel( Level.ALL );
-        fileHandler.setFormatter( formatter );
-        log.addHandler(fileHandler);
+
+        try {
+            FileHandler fileHandler = new FileHandler(dir + "/debug.log");
+            fileHandler.setLevel( Level.ALL );
+            fileHandler.setFormatter( formatter );
+            log.addHandler(fileHandler);
+        }
+        catch (IOException e) {
+            throw new STBException( 50 );
+        }
     }
 
     public static void removeConstraint( String symbol ) {
         constraints.remove( symbol );
     }
-
 
     public static synchronized String toReadableDate( long millis ) {
         Instant instant = Instant.ofEpochMilli( millis );
@@ -80,12 +116,7 @@ public class Static {
         return timeFormatter.format( zonedDateTime );
     }
 
-    public static String getAssetFromSymbol( String symbol ) {
-        SymbolInfo symbolInfo = exchangeInfo.getSymbolInfo( symbol );
-        return symbolInfo.getQuoteAsset();
-    }
-
-    public static String safeDecimal( BigDecimal bigDecimal, int maxLength ) {
+    public static synchronized String safeDecimal( BigDecimal bigDecimal, int maxLength ) {
 
         String decimal = bigDecimal.toPlainString();
         int length = decimal.length();
@@ -124,20 +155,48 @@ public class Static {
         }
     }
 
-   public static String formatNum( Num num ) {
-       if ( !num.getName().equals("PrecisionNum") )
-           throw new IllegalArgumentException("Argument is not PrecisionNum");
-       BigDecimal decimal = (BigDecimal) num.getDelegate();
-       return df.format( decimal );
+    public static synchronized String safeDecimal( BigDecimal bigDecimal ) {
+        return safeDecimal( bigDecimal, 5 );
     }
 
-    public static String getBaseFromSymbol( String symbol ) {
-        SymbolInfo symbolInfo = exchangeInfo.getSymbolInfo( symbol );
-        return symbolInfo.getBaseAsset();
-    }
 
-    public static String getQuoteFromSymbol( String symbol ) {
+    public static synchronized String getQuoteFromSymbol( String symbol ) {
         SymbolInfo symbolInfo = exchangeInfo.getSymbolInfo( symbol );
         return symbolInfo.getQuoteAsset();
     }
+
+    public static synchronized void requestExit( String symbol ) {
+        QueueMessage m = new QueueMessage( symbol );
+        EXIT_QUEUE.put( m );
+    }
+
+    public static synchronized Optional<QueueMessage> checkForExit( String symbol ) {
+        Optional<QueueMessage> optional = EXIT_QUEUE.stream().filter(
+                m -> m.getSymbol().equals( symbol ) || m.getSymbol().equals("*")).findFirst();
+        EXIT_QUEUE.removeIf( m -> !m.getSymbol().equals("*") && m.getSymbol().equals( symbol ));
+        return optional;
+    }
+
+    public static synchronized boolean requestDeregister( String symbol )  {
+        QueueMessage m = new QueueMessage( symbol );
+        return DR_QUEUE.offer( m );
+    }
+
+    public static synchronized QueueMessage checkForDeregister( ) {
+        return DR_QUEUE.poll( );
+    }
+
+    public static synchronized void appendRt( Cycle cycle ) {
+        NewOrder originalBuyOrder = cycle.getBuyPosition().getOriginalOrder();
+        String symbol = originalBuyOrder.getSymbol();
+        netGain = netGain.add( cycle.getGain(), MathContext.DECIMAL64 );
+        if ( rtWriter != null ) {
+            log.info( "Logging rt for symbol: " + symbol);
+            rtWriter.append( cycle.toCsv() ).append( "," )
+                    .append( safeDecimal( netGain ) ).append("\n")
+                    .flush();
+        }
+
+    }
+
 }

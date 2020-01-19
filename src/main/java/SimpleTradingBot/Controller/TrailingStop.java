@@ -10,6 +10,7 @@ import org.ta4j.core.num.PrecisionNum;
 import java.math.BigDecimal;
 import java.util.logging.Logger;
 
+import static SimpleTradingBot.Util.Static.safeDecimal;
 
 public class TrailingStop {
 
@@ -30,7 +31,7 @@ public class TrailingStop {
     public void setStopLoss( BigDecimal stopLoss ) {
         this.log.entering( this.getClass().getSimpleName(), "setStopLoss");
         this.stopLoss = stopLoss;
-        log.info("Setting stop loss value to: " + Static.formatNum( PrecisionNum.valueOf( stopLoss ) ) );
+        log.info("Setting stop loss value to: " + safeDecimal( stopLoss, 5) );
         this.log.exiting( this.getClass().getSimpleName(), "setStopLoss");
     }
 
@@ -38,19 +39,14 @@ public class TrailingStop {
         return this.stopLoss;
     }
 
-    public void update( Bar bar ) {
-        update( new BigDecimal( bar.getClosePrice().toString() ) );
-    }
-
     public void update( BigDecimal lastPrice ) throws BinanceApiException {
-        log.entering(this.getClass().getSimpleName(),"maintain");
+        log.entering(this.getClass().getSimpleName(),"update");
+        this.log.info("Updating stop loss with last price of: " + safeDecimal( lastPrice, 5));
         BigDecimal newStopLoss = lastPrice.multiply( Config.STOP_LOSS_PERCENT );
-        if ( newStopLoss.compareTo( this.stopLoss ) >= 0 ) {
-            log.info("Updating stop loss: " + Static.safeDecimal( lastPrice, 5));
-            this.stopLoss = newStopLoss;
-        }
+        if ( newStopLoss.compareTo( this.stopLoss ) >= 0 )
+            this.setStopLoss( newStopLoss );
         else
-            log.info( "No stop loss update required" );
-        log.exiting(this.getClass().getSimpleName(), "maintain");
+            this.log.info( "No change in stop loss required" );
+        log.exiting(this.getClass().getSimpleName(), "update");
     }
 }

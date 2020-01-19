@@ -28,7 +28,6 @@ public class FilterConstraints {
 
     private final int BASE_PRECISION;
 
-
     private final String SYMBOL;
 
     FilterConstraints( BigDecimal MIN_QTY, BigDecimal MAX_QTY, BigDecimal STEP, BigDecimal MIN_NOTIONAL, String BASE_ASSET, String QUOTE_ASSET, String SYMBOL,
@@ -60,7 +59,7 @@ public class FilterConstraints {
         return MIN_NOTIONAL;
     }
 
-    public int getBASE_PRECISION() {
+    public int getBasePrecision() {
         return BASE_PRECISION;
     }
 
@@ -93,15 +92,11 @@ public class FilterConstraints {
         throws STBException {
         HashMap<String, FilterConstraints> constraintsMap = new HashMap<>();
         for ( TickerStatistics statistic : statistics ) {
-
-
             String symbol = statistic.getSymbol();
             SymbolInfo symbolInfo = exchangeInfo.getSymbolInfo( symbol );
             String quote = symbolInfo.getQuoteAsset();
             String base = symbolInfo.getBaseAsset();
             int basePrecision = symbolInfo.getBaseAssetPrecision();
-
-
             Optional<SymbolFilter> mktLotFilterOpt = symbolInfo.getFilters().stream().filter(f -> f.getFilterType() == FilterType.MARKET_LOT_SIZE || f.getFilterType() == FilterType.LOT_SIZE ).findFirst();
             mktLotFilterOpt.orElseThrow( () -> new STBException( 40 ));
             SymbolFilter mktLotFilter = mktLotFilterOpt.get();

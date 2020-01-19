@@ -1,7 +1,5 @@
 package SimpleTradingBot.Rules;
 
-import SimpleTradingBot.Util.Static;
-import org.ta4j.core.num.*;
 import org.ta4j.core.Rule;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.SMAIndicator;
@@ -25,17 +23,15 @@ public class SMACross implements IRule {
     public SMACross( int p0, int p1, int ... periods ) {
         int l = periods.length;
         this.periods = new int[l + 2];
-        System.arraycopy(periods, 0, this.periods, 2, l);
         this.periods[0] = p0;
         this.periods[1] = p1;
-        getHeader( p0, p1, periods );
+        System.arraycopy(periods, 0, this.periods, 2, l);
+        getHeader( this.periods );
     }
 
-    private void getHeader( int p0, int p1, int ... periods ) {
+    private void getHeader( int ... periods ) {
         StringBuilder builder = new StringBuilder();
         String name = getName();
-        builder.append( name ).append( p1 ).append(",");
-        builder.append( name ).append( p0 ).append(",");
         for ( int p : periods )
             builder.append( name ).append( p ).append(",");
         this.next = builder.toString();
@@ -47,7 +43,6 @@ public class SMACross implements IRule {
         int nT = this.periods.length;
         OverIndicatorRule[] rules = new OverIndicatorRule[ nT ];
         StringBuilder builder = new StringBuilder();
-
         ClosePriceIndicator closePriceIndicator = new ClosePriceIndicator( timeSeries );
 
         for (int i = 0; i < nT - 1; i++) {

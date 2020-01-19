@@ -13,83 +13,55 @@ public class PositionState {
     private Flags flags;
 
     /* Where we are in the order cycle */
-    private Type type;
-
-
-    /* A change in flags or maintanace is required */
-    private Visibility visibility;
-
+    private Phase phase;
 
 
     public PositionState() {
-        this.type = Type.CLEAR;
+        this.phase = Phase.CLEAR;
         this.flags = Flags.NONE;;
-        this.visibility = Visibility.STABLE;
     }
 
-    public void maintain( Type state, Flags flags ) {
-        if ( ( flags != Flags.NONE) && ( flags != this.flags ) )
-            this.visibility = Visibility.UPDATED;
-        else
-            this.visibility = Visibility.STABLE;
-        this.type = state;
+    public void maintain(Phase state, Flags flags ) {
+        this.phase = state;
         this.flags = flags;
     }
 
-    public void setAsOutdated( ) {
-        this.visibility = Visibility.OUTDATED;
+    public void setPhase(Phase phase) {
+        this.phase = phase;
     }
 
-    public void setType(Type type) {
-        this.type = type;
+    public void setFlags(Flags flags) {
+        this.flags = flags;
     }
 
-    public Type getType() {
-        return type;
+    public Phase getPhase() {
+        return phase;
     }
 
     public Flags getFlags() {
-        return flags;
+        return this.flags;
     }
-
-    public boolean isClean( ) {
-        return ( type.isClean() || flags == Flags.NONE );
-    }
-
-    public boolean isUpdated( ) {
-        return this.visibility == Visibility.UPDATED;
-    }
-
-    public boolean isOutdated() {
-        return this.visibility == Visibility.OUTDATED;
-    }
-
-    public boolean isStable ( ) {
-        return this.visibility == Visibility.STABLE;
-    }
-
 
     public boolean isBuyOrHold()  {
-       return this.type.isBuyOrHold();
+       return this.phase.isBuyOrHold();
     }
 
 
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + "[" + this.type + "|" + this.flags + "|" + this.visibility + "]";
+        return this.getClass().getSimpleName() + "[" + this.phase + "|" + this.flags + "]";
     }
 
     public String toShortString() {
-        char t = this.type.toString().charAt( 0 );
+        char t = this.phase.toString().charAt( 0 );
         char f = this.flags.toString().charAt( 0 );
-        char v = this.visibility.toString().charAt( 0 );
-        return "[" + t + "|" + f + "|" + v + "]";
+        return "[" + t + "|" + f + "]";
 
     }
 
     /* Describes the current stage in
      * the order cycle of the asset. */
-    public enum Type {
+    public enum Phase {
 
         /* Both buy and sell complete (or null), available funds */
         CLEAR,
@@ -111,17 +83,6 @@ public class PositionState {
             return ( this == BUY || this == HOLD );
         }
 
-    }
-
-    /* Describes the visibility level of the position state,
-    * i.e if it is actually representative of the state of the buyer  */
-    public enum Visibility {
-
-        OUTDATED,
-
-        UPDATED,
-
-        STABLE
     }
 
     /* Describes an action that should be taken by the buyer
