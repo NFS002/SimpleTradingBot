@@ -1,7 +1,6 @@
 package SimpleTradingBot.Config;
 import SimpleTradingBot.Exception.STBException;
-import SimpleTradingBot.Rules.IRule;
-import SimpleTradingBot.Rules.SMACross;
+import SimpleTradingBot.Rules.*;
 import SimpleTradingBot.Util.Static;
 import SimpleTradingBot.test.TestLevel;
 import com.binance.api.client.constant.BinanceApiConstants;
@@ -28,11 +27,11 @@ public class Config {
 
     final public static long MIN_VOLUME = 10000;
 
-    final public static boolean FORCE_ORDER = true;
+    final public static boolean FORCE_ORDER = false;
 
-    final public static boolean FORCE_CLOSE = true;
+    final public static boolean FORCE_CLOSE = false;
 
-    final public static int EXIT_AFTER = 1;
+    final public static int EXIT_AFTER = -1;
 
     final public static int MAX_ERR = 30;
 
@@ -98,13 +97,10 @@ public class Config {
 
     public static IRule[] getTaRules() {
         return new IRule[] {
-                new SMACross(14, 50, 100, 500)
-        };
-    }
-
-    public static String[] getTaapiRules() {
-        return new String[]{
-                "sma?optInPeriod=50"
+                new SMACross(14, 50),
+                new MACD(),
+                new RSI(),
+                new OBV()
         };
     }
 

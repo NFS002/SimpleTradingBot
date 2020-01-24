@@ -26,13 +26,13 @@ public class SMACross implements IRule {
         this.periods[0] = p0;
         this.periods[1] = p1;
         System.arraycopy(periods, 0, this.periods, 2, l);
-        getHeader( this.periods );
+        getHeader( );
     }
 
-    private void getHeader( int ... periods ) {
+    private void getHeader() {
         StringBuilder builder = new StringBuilder();
         String name = getName();
-        for ( int p : periods )
+        for ( int p : this.periods )
             builder.append( name ).append( p ).append(",");
         this.next = builder.toString();
     }

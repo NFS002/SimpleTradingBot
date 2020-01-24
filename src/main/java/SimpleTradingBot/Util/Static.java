@@ -6,7 +6,10 @@ import SimpleTradingBot.Models.Cycle;
 import SimpleTradingBot.Models.FilterConstraints;
 import SimpleTradingBot.Models.QueueMessage;
 import com.binance.api.client.BinanceApiClientFactory;
+import com.binance.api.client.domain.OrderStatus;
 import com.binance.api.client.domain.account.NewOrder;
+import com.binance.api.client.domain.account.Order;
+import com.binance.api.client.domain.account.request.CancelOrderResponse;
 import com.binance.api.client.domain.general.ExchangeInfo;
 import com.binance.api.client.domain.general.SymbolInfo;
 
@@ -16,6 +19,7 @@ import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.text.DecimalFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
@@ -67,9 +71,7 @@ public class Static {
     private static void initRtWriter() {
         try {
             rtWriter = new PrintWriter(OUT_DIR + "rt.csv");
-            rtWriter.append("symbol,openPrice,openTime,buyId,nBuyUpdates," +
-                    "closePrice,closeTime,closeId,nSellUpdates," +
-                    "holdTime,gain,netGain\n").flush();
+            rtWriter.append( Cycle.CSV_HEADER ).flush();
         }
         catch ( IOException e ) {
             log.warning( "Cant create necessary rt files. Skipping rt logging" );
@@ -110,10 +112,17 @@ public class Static {
         constraints.remove( symbol );
     }
 
-    public static synchronized String toReadableDate( long millis ) {
+    public static synchronized String toReadableTime(long millis ) {
+        if ( millis < 0)
+            return String.valueOf( millis );
         Instant instant = Instant.ofEpochMilli( millis );
         ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant( instant, Config.ZONE_ID);
         return timeFormatter.format( zonedDateTime );
+    }
+
+    public static synchronized String toReadableDuration( long millis ) {
+        Duration duration = Duration.ofMillis( millis );
+        return String.format("%d:%02d:%02d", duration.toHours(), duration.toMinutesPart(), duration.toSecondsPart());
     }
 
     public static synchronized String safeDecimal( BigDecimal bigDecimal, int maxLength ) {
@@ -186,17 +195,18 @@ public class Static {
         return DR_QUEUE.poll( );
     }
 
-    public static synchronized void appendRt( Cycle cycle ) {
-        NewOrder originalBuyOrder = cycle.getBuyPosition().getOriginalOrder();
-        String symbol = originalBuyOrder.getSymbol();
-        netGain = netGain.add( cycle.getGain(), MathContext.DECIMAL64 );
-        if ( rtWriter != null ) {
-            log.info( "Logging rt for symbol: " + symbol);
-            rtWriter.append( cycle.toCsv() ).append( "," )
-                    .append( safeDecimal( netGain ) ).append("\n")
-                    .flush();
-        }
+    public static synchronized void logRt(Cycle cycle ) {
+        if ( !cycle.isFinalised() ) {
+            cycle.finalise();
+            netGain = netGain.add(cycle.getGain(), MathContext.DECIMAL64);
+            if (rtWriter != null) {
+                log.info("Logging rt for symbol: " + cycle.getSymbol());
+                rtWriter.append(cycle.toCsv()).append(",")
+                        .append(safeDecimal(netGain)).append("\n")
+                        .flush();
+            }
 
+        }
     }
 
 }

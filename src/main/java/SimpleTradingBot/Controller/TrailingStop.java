@@ -31,7 +31,7 @@ public class TrailingStop {
     public void setStopLoss( BigDecimal stopLoss ) {
         this.log.entering( this.getClass().getSimpleName(), "setStopLoss");
         this.stopLoss = stopLoss;
-        log.info("Setting stop loss value to: " + safeDecimal( stopLoss, 5) );
+        log.info("Setting stop loss value to: " + stopLoss );
         this.log.exiting( this.getClass().getSimpleName(), "setStopLoss");
     }
 
@@ -41,7 +41,7 @@ public class TrailingStop {
 
     public void update( BigDecimal lastPrice ) throws BinanceApiException {
         log.entering(this.getClass().getSimpleName(),"update");
-        this.log.info("Updating stop loss with last price of: " + safeDecimal( lastPrice, 5));
+        this.log.info("Updating stop loss with last price of: " + lastPrice );
         BigDecimal newStopLoss = lastPrice.multiply( Config.STOP_LOSS_PERCENT );
         if ( newStopLoss.compareTo( this.stopLoss ) >= 0 )
             this.setStopLoss( newStopLoss );

@@ -129,7 +129,7 @@ public class Trader {
         this.log.entering(this.getClass().getSimpleName(), "close");
         BigDecimal close = (BigDecimal) lastBar.getClosePrice().getDelegate();
         long currTimeMillis = System.currentTimeMillis();
-        String dateTime = Static.toReadableDate( currTimeMillis );
+        String dateTime = Static.toReadableTime( currTimeMillis );
         /* Get executed qty, or just use all our free balance */
         String symbol = this.symbol.getSymbol();
         String qty = getSellQty();
@@ -164,31 +164,45 @@ public class Trader {
         }
     }
 
-    private void findAndSetState( int nCycles ){
+    void findAndSetState( ){
         this.log.entering( this.getClass().getSimpleName(), "findAndSetState");
-        this.log.info( String.format( "Finding state, nCycles: %d", nCycles));
-        Cycle lastCycle = this.cycles.get( nCycles - 1 );
-        Position lastBuy = lastCycle.getBuyPosition();
-        Position lastSell = lastCycle.getSellPosition();
-        PositionState.Phase phase;
-        if (lastCycle.getSellPosition() == null) {
-            this.findAndSetFlags(lastBuy);
-            if (this.state.getFlags() == NONE)
-                phase = HOLD;
-            else
-                phase = BUY;
+        int nCycles = this.cycles.size();
+        if ( nCycles > 0) {
+            this.log.info(String.format("Finding state, nCycles: %d", nCycles));
+            Cycle lastCycle = this.cycles.get(nCycles - 1);
+            Position lastBuy = lastCycle.getBuyPosition();
+            Position lastSell = lastCycle.getSellPosition();
+            PositionState.Phase phase;
+            if (lastCycle.getSellPosition() == null) {
+                this.findAndSetFlags(lastBuy);
+                if (this.state.getFlags() == NONE) {
+                    /* Check we are actually holding something, or else move straight to clear */
+                    BigDecimal exQty = new BigDecimal(lastBuy.getLastUpdate().getExecutedQty());
+                    this.log.info("Executed qty in buy position: " + exQty);
+                    if (exQty.compareTo(BigDecimal.ZERO) > 0)
+                        phase = HOLD;
+                    else {
+                        if (!lastCycle.isFinalised())
+                            Static.logRt(lastCycle);
+                        phase = CLEAR;
+                    }
+                } else
+                    phase = BUY;
+            } else {
+                this.findAndSetFlags(lastSell);
+                if (this.state.getFlags() == NONE) {
+                    if (!lastCycle.isFinalised())
+                        Static.logRt(lastCycle);
+                    phase = CLEAR;
+                } else
+                    phase = SELL;
+            }
+            this.log.info("Determined phase: " + phase);
+            this.state.setPhase(phase);
         }
-        else {
-            this.findAndSetFlags(lastSell);
-            if (this.state.getFlags() == NONE) {
-                if (this.state.getPhase() != CLEAR)
-                    Static.appendRt(lastCycle);
-                phase = CLEAR;
-            } else
-                phase = SELL;
-        }
-        this.log.info("Determined phase: " + phase);
-        this.state.setPhase(phase);
+        else
+            this.log.info(String.format(
+                    "Cycles are empty (%d), no update or change in state required", nCycles));
         this.log.exiting( this.getClass().getSimpleName(), "findAndSetState");
     }
 
@@ -196,14 +210,12 @@ public class Trader {
         this.log.entering( this.getClass().getSimpleName(), "findAndSetFlags");
         int nUpdates = position.getnUpdate();
         this.log.info( String.format("Finding phase and flags, nUpdates: %d", nUpdates) );
-        PositionState.Flags flags = null;
+        PositionState.Flags flags = NONE;
         if ( nUpdates == 0 )
             flags = UPDATE;
         else if ( nUpdates == MAX_ORDER_UPDATES - 2 )
             flags = CANCEL;
-        else if ( nUpdates == MAX_ORDER_UPDATES - 1)
-            flags = NONE;
-        else {
+        else if ( nUpdates != MAX_ORDER_UPDATES - 1 ) {
             Order lastOrder = position.getLastUpdate();
             OrderStatus lastStatus = lastOrder.getStatus();
             this.log.info( String.format("Last update status: %s", lastStatus));
@@ -213,13 +225,6 @@ public class Trader {
                 case PENDING_CANCEL:
                     flags = UPDATE;
                     break;
-                case REJECTED:
-                case EXPIRED:
-                    flags = REVERT;
-                    break;
-                case FILLED:
-                case CANCELED:
-                    flags = NONE;
             }
         }
         this.log.info( "Found and set flags: " + flags );
@@ -231,7 +236,6 @@ public class Trader {
         log.entering(this.getClass().getSimpleName(), "update" );
         int nCycles = this.cycles.size();
         if ( nCycles > 0 ) {
-            this.findAndSetState( nCycles );
             BigDecimal close = (BigDecimal) bar.getClosePrice().getDelegate();
             this.updateStopLoss(close);
             if (this.state.getFlags() != NONE) {
@@ -245,11 +249,13 @@ public class Trader {
                     case SELL:
                         update( OrderSide.SELL, close );
                 }
-            } else
+            }
+            else
                 this.log.info("No further update required");
         }
         else
-            this.log.info("Cycles are empty, no update or change in state required");
+            this.log.info(String.format(
+                    "Cycles are empty (%d), no update or change in state required", nCycles));
         log.exiting(this.getClass().getSimpleName(), "update");
     }
 
@@ -279,7 +285,7 @@ public class Trader {
                 this.revertCycle( nCycles - 1 );
                 break;
             case CANCEL:
-                cancel( orderId );
+                cancel( position, orderId );
                 break;
             case UPDATE:
                 _update( position, originalResponse, orderId );
@@ -292,7 +298,7 @@ public class Trader {
     private void revertCycle( int i ) {
         this.log.entering( this.getClass().getSimpleName(), "revertCycle");
         this.log.info("Reverting cycle: " + i);
-        this.cycles.set( i - 1, null);
+        this.cycles.set( i, null);
         this.state.setFlags( NONE );
         this.state.setPhase( CLEAR );
         this.log.entering( this.getClass().getSimpleName(), "revertCycle");
@@ -303,7 +309,7 @@ public class Trader {
         this.log.entering( this.getClass().getSimpleName(), "logPreUpdate");
         OrderStatus oldStatus = originalResponse.getStatus();
         long timestamp = originalResponse.getTransactTime();
-        String time = Static.toReadableDate(timestamp);
+        String time = Static.toReadableTime(timestamp);
         PositionState.Flags flags = this.state.getFlags();
         int nUpdates = position.getnUpdate();
         this.log.info("Updating position: " + orderId
@@ -317,11 +323,11 @@ public class Trader {
 
             Order recentUpdate = position.getLastUpdate();
             long updateTime = recentUpdate.getTime();
-            String updatedTime = Static.toReadableDate( updateTime );
+            String updatedTime = Static.toReadableTime( updateTime );
             OrderStatus updatedStatus = recentUpdate.getStatus();
 
-            this.log.info("Update at " + updatedTime
-                    + ", updated status: " + updatedStatus);
+            this.log.info("Last update at: " + updatedTime
+                    + ", status: " + updatedStatus);
         }
         this.log.exiting( this.getClass().getSimpleName(), "logPreUpdate");
     }
@@ -354,11 +360,20 @@ public class Trader {
         this.log.exiting(this.getClass().getSimpleName(), "restart" );
     }
 
-    private void cancel( long orderId ) {
-        log.entering(this.getClass().getSimpleName(), "cancel");
+    private void cancel( Position position, long orderId ) {
+        this.log.entering(this.getClass().getSimpleName(), "cancel");
         CancelOrderRequest cancelOrderRequest = new CancelOrderRequest( this.symbol.getSymbol(), orderId );
-        log.info( "Cancelling order: " + cancelOrderRequest );
-        CancelOrderResponse response = this.client.cancelOrder( cancelOrderRequest );
+        this.log.info( "Cancelling order: " + cancelOrderRequest );
+        CancelOrderResponse response = null;
+        switch ( Config.TEST_LEVEL ) {
+            case FAKEORDER:
+                response = fakeCancelledResponse(cancelOrderRequest);
+                position.cancelFakeOrder( response );
+                break;
+            case REAL:
+                response = this.client.cancelOrder(cancelOrderRequest);
+                position.cancelOrder( response );
+        }
         this.log.info("Cancel order response: " + response );
         log.exiting(this.getClass().getSimpleName(), "cancel");
     }
@@ -396,13 +411,4 @@ public class Trader {
         return response;
     }
 
-    public void updateState(PositionState.Phase state, PositionState.Flags flags ) {
-        this.log.entering( this.getClass().getSimpleName(), "updateState");
-        PositionState currentState = getState();
-        PositionState.Phase type = currentState.getPhase();
-        PositionState.Flags currentFlags = currentState.getFlags();
-        this.log.info( "Updating state to: " + state + ", " + flags + ", from current state: " + type + ", " + currentFlags);
-        this.state.maintain( state, flags );
-        this.log.exiting( this.getClass().getSimpleName(), "updateState");
-    }
 }

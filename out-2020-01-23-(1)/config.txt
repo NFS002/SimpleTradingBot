@@ -11,4 +11,4 @@ trailing_loss: true
 take_profit: 1000.0
 test_level: FAKEORDER
 cool_down: 5
-out_dir: out-2020-01-19-(1)/
+out_dir: out-2020-01-23-(1)/

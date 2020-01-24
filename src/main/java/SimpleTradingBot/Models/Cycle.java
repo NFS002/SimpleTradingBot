@@ -1,15 +1,21 @@
 package SimpleTradingBot.Models;
 
 import com.binance.api.client.domain.OrderSide;
+import com.binance.api.client.domain.OrderStatus;
 import com.binance.api.client.domain.account.NewOrder;
 import com.binance.api.client.domain.account.NewOrderResponse;
+import com.binance.api.client.domain.account.Order;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.time.Duration;
+
+import static SimpleTradingBot.Util.Static.toReadableTime;
+import static SimpleTradingBot.Util.Static.toReadableDuration;
 
 public class Cycle {
+
+    private final String symbol;
 
     private final Position buyPosition;
 
@@ -29,35 +35,80 @@ public class Cycle {
 
     private long closeTime;
 
-    private Duration holdTime;
+    private long holdTime;
+
+    private OrderStatus lastBuyStatus;
+
+    private OrderStatus lastSellStatus;
+
+    private final String origBuyQty;
+
+    private String exBuyQty;
+
+    private String origSellQty;
+
+    private String exSellQty;
+
+    private boolean finalised;
 
     /* For market orders */
     private BigDecimal openPrice;
 
     private BigDecimal closePrice;
 
-    public Cycle ( Position buyPosition, BigDecimal openPrice ) {
-        this.buyPosition = buyPosition;
+    public static final String CSV_HEADER =
+            "symbol,openPrice,openTime,buyId,nBuyUpdates,lastBuyStatus,origBuyQty,exBuyQty," +
+            "closePrice,closeTime,closeId,nSellUpdates,lastSellStatus,origSellQty,exSellQty," +
+            "holdTime,gain,netGain\n";
 
+    public Cycle ( Position buyPosition, BigDecimal openPrice ) {
+        this.finalised = false;
+        this.buyPosition = buyPosition;
         NewOrder originalBuy = this.buyPosition.getOriginalOrder();
         NewOrderResponse originalBuyResponse = this.buyPosition.getOriginalOrderResponse();
-
+        this.symbol = originalBuyResponse.getSymbol();
         this.buyId = originalBuyResponse.getOrderId();
         this.openTime = originalBuy.getTimestamp();
         this.openPrice = openPrice;
+        this.origBuyQty = originalBuyResponse.getOrigQty();
     }
+
 
     public void setSellPosition( Position sellPosition, BigDecimal closePrice ) {
         this.sellPosition = sellPosition;
-
-        NewOrder originalSell = this.sellPosition.getOriginalOrder();
-        NewOrderResponse originalSellResponse = this.sellPosition.getOriginalOrderResponse();
-
-        this.closeId = originalSellResponse.getOrderId();
-        this.closeTime = originalSell.getTimestamp();
-        this.holdTime = Duration.ofMillis( this.closeTime - this.openTime );
         this.closePrice = closePrice;
-        this.setStats();
+    }
+
+    public String getOrigBuyQty() {
+        return this.origBuyQty;
+    }
+
+    public String getExBuyQty() {
+        return this.exBuyQty;
+    }
+
+    public String getOrigSellQty() {
+        return this.origSellQty;
+    }
+
+    public String getExSellQty() {
+        return this.exSellQty;
+    }
+
+    public String getSymbol() {
+        return this.symbol;
+    }
+
+    public boolean isFinalised() {
+        return this.finalised;
+    }
+
+    public OrderStatus getLastBuyStatus() {
+        return this.lastBuyStatus;
+    }
+
+    public OrderStatus getLastSellStatus() {
+        return this.lastSellStatus;
     }
 
     public BigDecimal getOpenPrice() {
@@ -104,20 +155,44 @@ public class Cycle {
         return closeTime;
     }
 
-    public Duration getHoldTime() {
-        return holdTime;
+    public long getHoldTime() {
+        return this.holdTime;
     }
 
-    private void setStats() {
-        BigDecimal openPrice = new BigDecimal( this.buyPosition.getOriginalOrderResponse().getPrice() );
-        BigDecimal closePrice = new BigDecimal( this.sellPosition.getOriginalOrderResponse().getPrice() );
-        this.gain = ( closePrice.subtract( openPrice ))
-                .divide( closePrice, RoundingMode.HALF_UP )
-                .multiply( BigDecimal.valueOf( 100 ) );
 
-        this.holdTime = Duration.ofMillis( closeTime - openTime );
+    public void finalise() {
+        Order lastUpdate = this.buyPosition.getLastUpdate();
         this.nBuyUpdates = this.buyPosition.getnUpdate();
-        this.nSellUpdates = this.sellPosition.getnUpdate();
+        this.lastBuyStatus = lastUpdate.getStatus();
+        this.exBuyQty = lastUpdate.getExecutedQty();
+
+        if ( this.sellPosition == null ) {
+            this.gain = BigDecimal.ZERO;
+            this.nSellUpdates = 0;
+            this.closeId = 0;
+            this.closeTime = 0;
+            this.closePrice = BigDecimal.ZERO;
+            this.holdTime = 0;
+            this.lastSellStatus = null;
+        }
+        else {
+            BigDecimal openPrice = new BigDecimal( this.buyPosition.getOriginalOrderResponse().getPrice() );
+            BigDecimal closePrice = new BigDecimal( this.sellPosition.getOriginalOrderResponse().getPrice() );
+            this.gain = ( closePrice.subtract( openPrice ))
+                    .divide( openPrice, RoundingMode.HALF_UP )
+                    .multiply( BigDecimal.valueOf( 100 ) );
+            this.nSellUpdates = this.sellPosition.getnUpdate();
+            NewOrder originalSell = this.sellPosition.getOriginalOrder();
+            NewOrderResponse originalSellResponse = this.sellPosition.getOriginalOrderResponse();
+            Order lastSellUpdate = this.sellPosition.getLastUpdate();
+            this.lastSellStatus = lastSellUpdate.getStatus();
+            this.origSellQty = originalSellResponse.getOrigQty();
+            this.exSellQty = lastSellUpdate.getExecutedQty();
+            this.closeId = originalSellResponse.getOrderId();
+            this.closeTime = originalSell.getTimestamp();
+            this.holdTime = this.closeTime - this.openTime;
+        }
+        this.finalised = true;
     }
 
 
@@ -137,13 +212,20 @@ public class Cycle {
         String symbol = originalBuyOrder.getSymbol();
         return symbol + "," +
                 this.openPrice + "," +
-                this.openTime + "," +
+                toReadableTime( this.openTime ) + "," +
                 this.buyId + "," +
                 this.nBuyUpdates + "," +
+                this.lastBuyStatus + "," +
+                this.origBuyQty + "," +
+                this.exBuyQty + "," +
                 this.closePrice + "," +
-                this.closeTime + "," +
+                toReadableTime( this.closeTime ) + "," +
                 this.closeId + "," +
-                this.holdTime + "," +
+                this.nSellUpdates + "," +
+                this.lastSellStatus + "," +
+                this.origSellQty + "," +
+                this.exSellQty + "," +
+                toReadableDuration( this.holdTime ) + "," +
                 this.gain;
     }
 }

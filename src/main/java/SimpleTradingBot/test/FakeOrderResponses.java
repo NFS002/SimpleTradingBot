@@ -5,7 +5,10 @@ import com.binance.api.client.domain.TimeInForce;
 import com.binance.api.client.domain.account.NewOrder;
 import com.binance.api.client.domain.account.NewOrderResponse;
 import com.binance.api.client.domain.account.Order;
+import com.binance.api.client.domain.account.request.CancelOrderRequest;
+import com.binance.api.client.domain.account.request.CancelOrderResponse;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -13,7 +16,6 @@ import static com.binance.api.client.domain.OrderStatus.*;
 
 /* Fake order responses and updates for testing order cycles */
 public class FakeOrderResponses {
-
 
     private static final long ORDER_ID = 12345L;
 
@@ -38,7 +40,7 @@ public class FakeOrderResponses {
 
             case 0:
 
-                return new OrderStatus[]{ NEW, PARTIALLY_FILLED, CANCELED };
+                return new OrderStatus[]{ PARTIALLY_FILLED, PARTIALLY_FILLED, CANCELED };
 
             case 1:
 
@@ -71,6 +73,8 @@ public class FakeOrderResponses {
             stageMap.put( symbol, stage  );
         Order update = fakeUpdate( response );
         update.setStatus( status );
+        if ( status == EXPIRED || status == REJECTED )
+            update.setExecutedQty(BigDecimal.ZERO.toString() );
         return update;
     }
 
@@ -105,6 +109,14 @@ public class FakeOrderResponses {
     public static NewOrderResponse fakeCancelledResponse(NewOrder newOrder, String price ) {
         NewOrderResponse response = fakeFilledResponse( newOrder, price );
         response.setStatus( OrderStatus.CANCELED );
+        return response;
+    }
+
+    public static CancelOrderResponse fakeCancelledResponse( CancelOrderRequest request ) {
+        CancelOrderResponse response = new CancelOrderResponse();
+        response.setOrderId( String.valueOf(request.getOrderId()) );
+        response.setSymbol( request.getSymbol() );
+        response.setClientOrderId( request.getOrigClientOrderId() );
         return response;
     }
 
