@@ -5,10 +5,6 @@ import com.binance.api.client.domain.event.CandlestickEvent;
 
 public class YahooFeeder implements Feeder {
 
-    @Override
-    public CandlestickEvent getCandlestickEvent(String line) {
-        return null;
-    }
 
     @Override
     public void readHeader(String header) {

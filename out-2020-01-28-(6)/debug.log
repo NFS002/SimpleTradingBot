@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE log SYSTEM "logger.dtd">
+<log>
+<record>
+  <date>2020-01-28T13:40:13.292167Z</date>
+  <millis>1580218813292</millis>
+  <nanos>167000</nanos>
+  <sequence>1</sequence>
+  <logger>root</logger>
+  <level>SEVERE</level>
+  <class>SimpleTradingBot.Schedule.QuandlTestSchedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Backtest failed</message>
+  <exception>
+    <message>java.lang.IllegalArgumentException: Invalid file format</message>
+    <frame>
+      <class>SimpleTradingBot.Test.Backtest.Feeder.QuandlFeeder</class>
+      <method>readHeader</method>
+      <line>16</line>
+    </frame>
+    <frame>
+      <class>SimpleTradingBot.Schedule.QuandlTestSchedule</class>
+      <method>main</method>
+      <line>37</line>
+    </frame>
+  </exception>
+</record>
+</log>

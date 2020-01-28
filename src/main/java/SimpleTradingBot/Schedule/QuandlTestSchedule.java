@@ -1,5 +1,4 @@
 package SimpleTradingBot.Schedule;
-import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Test.Backtest.Feeder.Feeder;
 import SimpleTradingBot.Test.Backtest.TestController;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -29,13 +28,11 @@ public class QuandlTestSchedule {
             int i = getNextQuandlIndex();
             String symbol = getSymbolAt( i );
             log.info("Starting backtest (" + i + "," + symbol + ").");
-            Feeder feeder = getQuandlFeeder();
+            Feeder feeder = getQuandlFeeder( symbol );
             TestController testController = new TestController(symbol);
             String url = buildQuandlUrl( symbol );
             Scanner csvData = getCsvScanner( url );
             int r = 0;
-            String header = csvData.nextLine();
-            feeder.readHeader( header );
             while ( csvData.hasNextLine() ) {
                 String trimmedLine = csvData.nextLine().trim();
                 if (!trimmedLine.isEmpty()) {
