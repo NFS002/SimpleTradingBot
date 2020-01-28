@@ -1,15 +1,10 @@
 package SimpleTradingBot.Util;
-import SimpleTradingBot.Config.ApiKeys;
 import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Models.Cycle;
 import SimpleTradingBot.Models.FilterConstraints;
 import SimpleTradingBot.Models.QueueMessage;
 import com.binance.api.client.BinanceApiClientFactory;
-import com.binance.api.client.domain.OrderStatus;
-import com.binance.api.client.domain.account.NewOrder;
-import com.binance.api.client.domain.account.Order;
-import com.binance.api.client.domain.account.request.CancelOrderResponse;
 import com.binance.api.client.domain.general.ExchangeInfo;
 import com.binance.api.client.domain.general.SymbolInfo;
 
@@ -36,7 +31,7 @@ public class Static {
 
     public static String OUT_DIR;
 
-    public static BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance( ApiKeys.BINANCE_API_KEY, ApiKeys.BINANCE_SECRET_KEY);
+    public static BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance( Config.BINANCE_API_KEY, Config.BINANCE_SECRET_KEY);
 
     public static DateTimeFormatter timeFormatter = DateTimeFormatter.ofLocalizedTime( FormatStyle.SHORT );
 
@@ -184,6 +179,28 @@ public class Static {
                 m -> m.getSymbol().equals( symbol ) || m.getSymbol().equals("*")).findFirst();
         EXIT_QUEUE.removeIf( m -> !m.getSymbol().equals("*") && m.getSymbol().equals( symbol ));
         return optional;
+    }
+
+    public static FilterConstraints getConstraint( String symbol ) {
+        if ( constraints == null )
+            return null;
+        else
+            return constraints.get( symbol );
+    }
+
+    public static boolean constraintsAreEmpty( ) {
+        if ( constraints == null )
+            return true;
+        else
+            return constraints.isEmpty();
+    }
+
+    public static String getDatasetPath( String datasetId ) {
+        return null;
+    }
+
+    public static String getSymbol( String datasetId ) {
+        return null;
     }
 
     public static synchronized boolean requestDeregister( String symbol )  {

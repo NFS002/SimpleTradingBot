@@ -2,23 +2,14 @@ package SimpleTradingBot.Services;
 
 
 import SimpleTradingBot.Config.Config;
-import SimpleTradingBot.Controller.Controller;
+import SimpleTradingBot.Controller.LiveController;
 import SimpleTradingBot.Controller.TimeKeeper;
-import SimpleTradingBot.Controller.Trader;
 import SimpleTradingBot.Exception.STBException;
-import SimpleTradingBot.Models.*;
 import SimpleTradingBot.Models.QueueMessage;
 import SimpleTradingBot.Util.Static;
-import com.binance.api.client.domain.OrderSide;
-import com.binance.api.client.domain.OrderStatus;
-import com.binance.api.client.domain.account.*;
 import com.binance.api.client.domain.market.TickerStatistics;
 import org.ta4j.core.TimeSeries;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.math.BigDecimal;
-import java.math.MathContext;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -26,15 +17,13 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static SimpleTradingBot.Util.Static.OUT_DIR;
-import static SimpleTradingBot.Config.Config.MAX_ORDER_UPDATES;
 import static SimpleTradingBot.Util.Static.requestExit;
 
 public class HeartBeat {
 
     private Logger log;
 
-    private ArrayList<Controller> controllers;
+    private ArrayList<LiveController> controllers;
 
     /* Singleton pattern */
     private static HeartBeat instance;
@@ -51,7 +40,7 @@ public class HeartBeat {
         return instance;
     }
 
-    public void register( Controller controller ) {
+    public void register( LiveController controller ) {
         this.log.entering( this.getClass().getSimpleName(), "register");
         String symbol = controller.getSummary().getSymbol();
         if ( !hasRegistered(controller) ) {
@@ -63,9 +52,9 @@ public class HeartBeat {
         this.log.exiting( this.getClass().getSimpleName(), "register");
     }
 
-    private boolean hasRegistered(Controller controller) {
+    private boolean hasRegistered(LiveController controller) {
 
-        for (Controller assetController : controllers) {
+        for (LiveController assetController : controllers) {
             TickerStatistics registeredSummary = assetController.getSummary();
             TickerStatistics newSummary = controller.getSummary();
             String newSymbol = newSummary.getSymbol();
@@ -149,7 +138,7 @@ public class HeartBeat {
     private void _maintenance()  throws STBException {
         this.log.entering( this.getClass().getSimpleName(), "_maintenance");
 
-        for (Controller controller : this.controllers) {
+        for (LiveController controller : this.controllers) {
             TickerStatistics summary = controller.getSummary();
             String symbol = summary.getSymbol();
             this.log.info("Performing maintenance for symbol: " + symbol);
@@ -168,7 +157,7 @@ public class HeartBeat {
         log.exiting( this.getClass().getSimpleName(), "_maintenance");
     }
 
-    private boolean checkHearbeat( Controller controller ) {
+    private boolean checkHearbeat( LiveController controller ) {
         this.log.entering( this.getClass().getSimpleName(), "checkHeartbeat");
         String symbol = controller.getSummary().getSymbol();
         this.log.info( "Checking heartbeat for symbol: " + symbol );

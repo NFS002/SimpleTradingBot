@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE log SYSTEM "logger.dtd">
+<log>
+<record>
+  <date>2020-01-28T12:02:14.909867Z</date>
+  <millis>1580212934909</millis>
+  <nanos>867000</nanos>
+  <sequence>1</sequence>
+  <logger>root</logger>
+  <level>INFO</level>
+  <class>SimpleTradingBot.Schedule.QuandlTestSchedule</class>
+  <method>main</method>
+  <thread>1</thread>
+  <message>Backtest complete (3,AA). Read 1 lines</message>
+</record>
+</log>

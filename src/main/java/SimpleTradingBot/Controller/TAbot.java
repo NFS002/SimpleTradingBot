@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 
 public class TAbot {
 
-    private TickerStatistics statistics;
+    private final String symbol;
 
     private Logger log;
 
@@ -31,10 +31,10 @@ public class TAbot {
         return nFields;
     }
 
-    public TAbot( TickerStatistics statistics ) {
+    public TAbot( String symbol ) {
         String loggerName = this.getClass().getSimpleName();
-        this.statistics = statistics;
-        this.log = Logger.getLogger( "root." + statistics.getSymbol() + "." + loggerName );
+        this.symbol = symbol;
+        this.log = Logger.getLogger( "root." + symbol + "." + loggerName );
         setHeader();
     }
 

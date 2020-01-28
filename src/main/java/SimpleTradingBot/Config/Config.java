@@ -2,7 +2,7 @@ package SimpleTradingBot.Config;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Rules.*;
 import SimpleTradingBot.Util.Static;
-import SimpleTradingBot.test.TestLevel;
+import SimpleTradingBot.Test.TestLevel;
 import com.binance.api.client.constant.BinanceApiConstants;
 import com.binance.api.client.domain.market.CandlestickInterval;
 
@@ -45,7 +45,7 @@ public class Config {
 
     final public static int MAX_TIME_SYNC = 1000;
 
-    final public static IRule[] TA_RULES = getTaRules();
+    final public static IRule[] TA_RULES;
 
     final public static int GBP_PER_TRADE = 25;
 
@@ -81,6 +81,32 @@ public class Config {
 
     final public static int COOL_DOWN = 5;
 
+    /* For test schedule only */
+    final public static String DATASET_ID = "C-AAPL-19";
+
+    final public static String QUANDL_BASE_URL = "https://www.quandl.com/api/v3/datasets/EOD/";
+
+    final public static String BINANCE_API_KEY;
+
+    final public static String BINANCE_SECRET_KEY;
+
+    final public static String QUANDL_API_KEY;
+
+    static {
+        BINANCE_API_KEY = System.getenv("BINANCE_API_KEY");
+
+        BINANCE_SECRET_KEY = System.getenv("BINANCE_SECRET_KEY");
+
+        QUANDL_API_KEY = System.getenv("QUANDL_API_KEY");
+        
+        TA_RULES = new IRule[] {
+                new SMACross(14, 50),
+                new MACD(),
+                new RSI(),
+                new OBV()
+        };
+    }
+
     public static void print() {
         try {
             File conf = new File(Static.OUT_DIR + "config.txt");
@@ -93,15 +119,6 @@ public class Config {
         catch ( IOException e ) {
             throw new STBException( 30 );
         }
-    }
-
-    public static IRule[] getTaRules() {
-        return new IRule[] {
-                new SMACross(14, 50),
-                new MACD(),
-                new RSI(),
-                new OBV()
-        };
     }
 
     @Override
