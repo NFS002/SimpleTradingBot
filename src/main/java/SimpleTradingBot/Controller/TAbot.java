@@ -54,22 +54,19 @@ public class TAbot {
 
     public boolean isSatisfied( TimeSeries series  )  {
 
-        boolean satisfied = true;
+        boolean allSatisfied = true;
         int index = series.getEndIndex();
         StringBuilder builder = new StringBuilder();
-
 
         for ( IRule r: Config.TA_RULES ) {
             Rule rule = r.apply( series, index );
             builder.append( r.getNext() );
-            satisfied = rule.isSatisfied( index );
-            this.log.info( "Rule " + r.getName() + " applied. Satisfied: " + satisfied );
-
-            if ( !satisfied )
-                break;
+            boolean ruleSatisfied = rule.isSatisfied( index );
+            allSatisfied = allSatisfied && ruleSatisfied;
+            this.log.info( "Rule " + r.getName() + " applied, satisfied: " + ruleSatisfied );
         }
 
         this.next = builder.toString();
-        return satisfied;
+        return allSatisfied;
     }
 }

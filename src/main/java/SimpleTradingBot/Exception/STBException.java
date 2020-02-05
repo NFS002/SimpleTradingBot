@@ -1,6 +1,5 @@
 package SimpleTradingBot.Exception;
-
-import java.io.UncheckedIOException;
+import org.apache.http.StatusLine;
 
 public class STBException extends RuntimeException {
 
@@ -12,6 +11,7 @@ public class STBException extends RuntimeException {
         this.statusCode = statusCode;
         this.message = getMessage_internal( );
     }
+
 
     private String getMessage_internal( )  {
         switch ( this.statusCode ) {

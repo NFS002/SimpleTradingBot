@@ -8,10 +8,13 @@ import org.ta4j.core.num.Num;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.ArrayList;
 
 public class ContinouslyInSlopeRule implements Rule {
 
     private Indicator<Num> indicator;
+
+    private ArrayList<BigDecimal> history;
 
     private BigDecimal minSlope;
 

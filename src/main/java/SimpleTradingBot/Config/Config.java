@@ -45,7 +45,7 @@ public class Config {
 
     final public static int MAX_TIME_SYNC = 1000;
 
-    final public static IRule[] TA_RULES;
+    public static IRule[] TA_RULES;
 
     final public static int GBP_PER_TRADE = 25;
 
@@ -99,17 +99,18 @@ public class Config {
 
         QUANDL_API_KEY = System.getenv("QUANDL_API_KEY");
         
+        resetTa();
+    }
+
+    public static void resetTa() {
         TA_RULES = new IRule[] {
-                new SMACross(14, 50),
-                new MACD(),
-                new RSI(),
-                new OBV()
+                new SMACross(14, 50)
         };
     }
 
     public static void print() {
         try {
-            File conf = new File(Static.OUT_DIR + "config.txt");
+            File conf = new File(Static.ROOT_OUT + "config.txt");
             conf.createNewFile();
             Config c = new Config();
             FileWriter w = new FileWriter(conf);
@@ -137,7 +138,7 @@ public class Config {
                 .append("take_profit: " + takeProfit + "\n")
                 .append("test_level: " + TEST_LEVEL + "\n")
                 .append("cool_down: " + COOL_DOWN + "\n")
-                .append("out_dir: " + Static.OUT_DIR + "\n");
+                .append("out_dir: " + Static.ROOT_OUT + "\n");
         return sb.toString();
     }
 }

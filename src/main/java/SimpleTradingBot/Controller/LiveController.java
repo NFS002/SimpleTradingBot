@@ -13,7 +13,6 @@ import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.BinanceApiWebSocketClient;
 import com.binance.api.client.domain.event.CandlestickEvent;
 import com.binance.api.client.domain.market.Candlestick;
-import com.binance.api.client.domain.market.TickerStatistics;
 import com.binance.api.client.exception.BinanceApiException;
 import org.ta4j.core.*;
 
@@ -25,15 +24,12 @@ import java.math.BigDecimal;
 import java.time.*;
 import java.util.List;
 import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
 import static SimpleTradingBot.Config.Config.*;
 
 
 public class LiveController implements BinanceApiCallback<CandlestickEvent> {
-
-    private TickerStatistics summary;
 
     private TAbot taBot;
 
@@ -55,6 +51,8 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
 
     private int coolOff;
 
+    private String symbol;
+
     private String baseSymbol;
 
     private String assetSymbol;
@@ -63,40 +61,37 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
 
     /* Constructor */
 
-    public LiveController( TickerStatistics summary )
+    public LiveController( String symbol )
             throws BinanceApiException, IOException, STBException {
 
-        String symbol = summary.getSymbol();
+        File baseDir = initBaseDir( symbol );
         BaseTimeSeries.SeriesBuilder builder = new BaseTimeSeries.SeriesBuilder();
         builder.withNumTypeOf( PrecisionNum::valueOf )
                 .withMaxBarCount( MAX_BAR_COUNT )
                 .withName( symbol );
-
+        this.symbol = symbol;
         this.timeSeries = builder.build();
-        this.summary = summary;
-        this.buyer = new LiveTrader( symbol );
+        this.buyer = new LiveTrader( symbol, baseDir );
         this.handler = new Handler( symbol );
-        this.timeKeeper = new TimeKeeper( summary );
+        this.timeKeeper = new TimeKeeper( symbol );
         this.taBot = new TAbot( symbol );
         this.coolOff = 0;
         this.nWssErr = 0;
         this.paused = false;
 
-        File baseDir = initBaseDir();
 
         if ( LOG_TS_AT != -1 )
             initTsWriter( baseDir );
 
-        initLogger( );
+        initLogger( baseDir );
+        initSymbol();
 
         if ( INIT_TS )
             initSeries();
 
-        initSymbol();
 
         if ( TEST_LEVEL == TestLevel.FAKEORDER )
-            FakeOrderResponses.register( this.summary.getSymbol() );
-
+            FakeOrderResponses.register( this.symbol );
     }
 
     /* Getters & Setters */
@@ -125,8 +120,8 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         return this.timeSeries;
     }
 
-    public TickerStatistics getSummary() {
-        return summary;
+    public String getSymbol() {
+        return this.symbol;
     }
 
     /* Local methods */
@@ -220,7 +215,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
     private void request_deregister() {
         this.log.entering( this.getClass( ).getSimpleName( ), "request_deregister");
         this.log.severe( "Requesting deregister from HB" );
-        if ( !Static.requestDeregister( this.summary.getSymbol()) )
+        if ( !Static.requestDeregister( this.symbol ) )
             this.log.severe( "Deregister request failed");
         this.log.exiting( this.getClass().getSimpleName( ), "request_deregister");
     }
@@ -228,7 +223,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
     private boolean shouldExit() {
         this.log.entering( this.getClass().getSimpleName(), "checkExitQueue");
         this.log.info( "Checking exit queue");
-        Optional<QueueMessage> exitMessage = Static.checkForExit( this.summary.getSymbol() );
+        Optional<QueueMessage> exitMessage = Static.checkForExit( this.symbol );
         if ( exitMessage.isPresent() ) {
             this.log.severe( "Received shutdown message" );
             return true;
@@ -254,13 +249,11 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
     private void resetAll() throws Exception  {
         this.log.entering( this.getClass().getSimpleName(), "resetAll");
         log.warning( "Performing reset..." );
-        String symbol = summary.getSymbol();
         BaseTimeSeries.SeriesBuilder builder = new BaseTimeSeries.SeriesBuilder();
         builder.withNumTypeOf( PrecisionNum::valueOf )
                 .withMaxBarCount( MAX_BAR_COUNT )
-                .withName( symbol );
+                .withName( this.symbol );
         this.timeSeries = builder.build();
-        this.buyer = new LiveTrader( symbol );
         long now = System.currentTimeMillis();
         this.timeKeeper.endStream( now );
         long time = this.timeKeeper.getStreamTime();
@@ -294,17 +287,18 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         }
 
         this.tsWriter.close();
-        log.severe( "Removing filter constraint");
+        this.log.severe( "Removing filter constraint");
 
-        Static.removeConstraint( this.summary.getSymbol() );
+        Static.removeConstraint( this.symbol );
 
         StringBuilder msg = new StringBuilder();
         long currentTime = System.currentTimeMillis();
         this.timeKeeper.endStream( currentTime );
         long duration = this.timeKeeper.getStreamTime();
         msg.append("Time Elapsed since open: ").append( duration ).append("s");
-        log.severe( msg.toString() );
+        this.log.severe( msg.toString() );
         this.log.exiting( this.getClass().getSimpleName(), "exit");
+        this.closeLogHandlers();
     }
 
     @Override
@@ -450,8 +444,8 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         String dateTime = Static.toReadableTime( currentTime );
         this.timeKeeper.startStream( currentTime );
         BinanceApiWebSocketClient webSocketClient = Static.getFactory().newWebSocketClient();
-        this.closeable = webSocketClient.onCandlestickEvent( this.summary.getSymbol().toLowerCase(),Config.CANDLESTICK_INTERVAL, this);
-        log.info("Connected to WSS data stream at " + dateTime + ", " + summary.getSymbol());
+        this.closeable = webSocketClient.onCandlestickEvent( this.symbol.toLowerCase(), Config.CANDLESTICK_INTERVAL, this);
+        log.info("Connected to WSS data stream at " + dateTime + ", " + this.symbol );
         this.log.exiting( this.getClass().getSimpleName(), "liveStream" );
     }
 
@@ -522,7 +516,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
     private void initSeries() {
         log.entering( this.getClass().getSimpleName(), "initSeries");
         BinanceApiRestClient client = Static.getFactory().newRestClient();
-        List<Candlestick> candlesticks = client.getCandlestickBars(summary.getSymbol(), Config.CANDLESTICK_INTERVAL);
+        List<Candlestick> candlesticks = client.getCandlestickBars( this.symbol, Config.CANDLESTICK_INTERVAL);
         this.log.info("Initialising timeseries with " + candlesticks.size() + " bars");
         for (Candlestick candletick:candlesticks) {
             Bar bar = candlestickToBar( candletick );
@@ -540,8 +534,8 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.baseSymbol = this.buyer.constraints.getQUOTE_ASSET();
     }
 
-    private File initBaseDir() throws STBException {
-        File dir = new File(Static.OUT_DIR + summary.getSymbol());
+    private File initBaseDir( String symbol ) throws STBException {
+        File dir = new File(Static.ROOT_OUT + symbol );
         if (!dir.exists() && !dir.mkdirs())
             throw new STBException( 60 );
         return dir;
@@ -561,10 +555,19 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.tsWriter.append( header ).append("\n").flush();
     }
 
-    private void initLogger( ) {
-        this.log = Logger.getLogger("root." + this.summary.getSymbol() );
-        log.setLevel( Level.ALL );
-        log.setUseParentHandlers( true );
+
+    private void initLogger( File baseDir ) throws IOException {
+        this.log = Logger.getLogger("root." + this.symbol );
+        this.log.setLevel( Level.ALL );
+        FileHandler handler = new FileHandler( baseDir + "/debug.log" );
+        handler.setFormatter( new XMLFormatter() );
+        this.log.addHandler( handler );
+        this.log.setUseParentHandlers( true );
+    }
+
+    private void closeLogHandlers() {
+        for (java.util.logging.Handler h : this.log.getHandlers() )
+            h.close();
     }
 
 }

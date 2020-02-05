@@ -1,5 +1,6 @@
 package SimpleTradingBot.Test.Backtest.Feeder;
 
+import SimpleTradingBot.Exception.STBException;
 import com.binance.api.client.BinanceApiCallback;
 import com.binance.api.client.domain.event.CandlestickEvent;
 
@@ -31,6 +32,7 @@ public class QuandlFeeder implements Feeder {
 
     @Override
     public void readHeader(String header) {
+        System.out.println( header );
         if ( header.equals("code,message"))
             throw new IllegalArgumentException("Invalid header");
     }
@@ -42,7 +44,7 @@ public class QuandlFeeder implements Feeder {
             CandlestickEvent event = new CandlestickEvent();
             Date date = SDF.parse(split[DATE]);
             event.setSymbol(SYMBOL);
-            event.setOpenTime(date.getTime());
+            event.setCloseTime(date.getTime());
             event.setOpen(split[OPEN]);
             event.setHigh(split[HIGH]);
             event.setLow(split[LOW]);
@@ -51,7 +53,7 @@ public class QuandlFeeder implements Feeder {
             callback.onResponse( event );
         }
         catch (ParseException e) {
-            throw new IllegalArgumentException("Invalid file format: " + line);
+            throw new IllegalArgumentException(e.getMessage() + ": " + line);
         }
     }
 }

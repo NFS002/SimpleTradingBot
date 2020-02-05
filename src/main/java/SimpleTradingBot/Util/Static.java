@@ -29,7 +29,7 @@ import java.util.logging.*;
 
 public class Static {
 
-    public static String OUT_DIR;
+    public static String ROOT_OUT;
 
     public static BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance( Config.BINANCE_API_KEY, Config.BINANCE_SECRET_KEY);
 
@@ -42,8 +42,6 @@ public class Static {
     public static ExchangeInfo exchangeInfo;
 
     private static Logger log;
-
-    private static BigDecimal netGain = BigDecimal.ZERO;
 
     private static PrintWriter rtWriter;
 
@@ -63,9 +61,16 @@ public class Static {
         Config.print();
     }
 
+    public static void reset() {
+        initRootLoggers();
+        initRtWriter();
+        Config.resetTa();
+        Config.print();
+    }
+
     private static void initRtWriter() {
         try {
-            rtWriter = new PrintWriter(OUT_DIR + "rt.csv");
+            rtWriter = new PrintWriter(ROOT_OUT + "rt.csv");
             rtWriter.append( Cycle.CSV_HEADER ).flush();
         }
         catch ( IOException e ) {
@@ -75,28 +80,33 @@ public class Static {
 
 
     private static boolean checkRootDir( int n ) {
-        OUT_DIR = "out-" + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + "-(" + n + ")/";
-        File f = new File( OUT_DIR );
+        ROOT_OUT = "out-" + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + "-(" + n + ")/";
+        File f = new File(ROOT_OUT);
         return f.exists();
     }
 
 
     private static void initRootLoggers()  {
         for  ( int n = 1; checkRootDir( n ); n++ );
-
-        log = Logger.getLogger( "root" );
+        String rootLoggerName = "root";
+        log = Logger.getLogger( rootLoggerName );
         log.setUseParentHandlers( false );
-        File dir = new File( OUT_DIR );
+        File dir = new File(ROOT_OUT);
         if ( !dir.mkdirs() )
             throw new STBException( 50 );
 
         XMLFormatter formatter = new XMLFormatter();
 
         try {
+
             FileHandler fileHandler = new FileHandler(dir + "/debug.log");
             fileHandler.setLevel( Level.ALL );
             fileHandler.setFormatter( formatter );
             log.addHandler(fileHandler);
+
+            ConsoleHandler consoleHandler = new ConsoleHandler();
+            consoleHandler.setFilter(logRecord -> logRecord.getLoggerName().equals( rootLoggerName ));
+            log.addHandler( consoleHandler );
         }
         catch (IOException e) {
             throw new STBException( 50 );
@@ -213,17 +223,14 @@ public class Static {
     }
 
     public static synchronized void logRt(Cycle cycle ) {
-        if ( !cycle.isFinalised() ) {
-            cycle.finalise();
-            netGain = netGain.add(cycle.getGain(), MathContext.DECIMAL64);
-            if (rtWriter != null) {
-                log.info("Logging rt for symbol: " + cycle.getSymbol());
-                rtWriter.append(cycle.toCsv()).append(",")
-                        .append(safeDecimal(netGain)).append("\n")
-                        .flush();
-            }
-
-        }
+        if (rtWriter != null)
+            rtWriter.append(cycle.toCsv()).flush();
     }
 
+    public static synchronized void logRt(Logger logger, PrintWriter writer, Cycle cycle ) {
+        if (writer != null) {
+            logger.info("Logging rt for symbol: " + cycle.getSymbol());
+            writer.append(cycle.toCsv()).flush();
+        }
+    }
 }

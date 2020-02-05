@@ -1,55 +1,61 @@
 package SimpleTradingBot.Schedule;
+import SimpleTradingBot.Exception.StbBackTestException;
 import SimpleTradingBot.Test.Backtest.Feeder.Feeder;
 import SimpleTradingBot.Test.Backtest.TestController;
+import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.io.*;
+import java.util.*;
+import java.util.logging.*;
 
 import static SimpleTradingBot.Test.Backtest.Feeder.FeederFactory.getQuandlFeeder;
 import static SimpleTradingBot.Config.Config.QUANDL_BASE_URL;
 import static SimpleTradingBot.Config.Config.QUANDL_API_KEY;
+import static SimpleTradingBot.Config.Config.resetTa;
 
 public class QuandlTestSchedule {
 
-    public static void main(String... args) {
-        Logger log = Logger.getLogger( "root" );
+
+    public static void main(String... args) throws IOException {
+        final String[] allSymbols = new String[] {
+                "HD", "DIS", "MSFT", "BA", "MMM","PFE","NKE",
+                "JNJ","MCD","INTC","XOM","GS","JPM","AXP","V",
+                "IBM","UNH","PG","GE","KO","CSCO","CVX","CAT",
+                "MRK","WMT","VZ","UTX","TRV","AAPL"
+        };
+        Logger log = Logger.getLogger("root");
         log.entering("Schedule","main");
-        try {
+        for (int k = 0; k < allSymbols.length; k++) {
             Thread parentThread = Thread.currentThread();
             parentThread.setName("Parent");
-            int i = getNextQuandlIndex();
-            String symbol = getSymbolAt( i );
-            log.info("Starting backtest (" + i + "," + symbol + ").");
-            Feeder feeder = getQuandlFeeder( symbol );
-            TestController testController = new TestController(symbol);
-            String url = buildQuandlUrl( symbol );
-            Scanner csvData = getCsvScanner( url );
-            int r = 0;
-            while ( csvData.hasNextLine() ) {
-                String trimmedLine = csvData.nextLine().trim();
-                if (!trimmedLine.isEmpty()) {
-                    feeder.feed(trimmedLine, testController);
-                    r++;
+            String symbol = allSymbols[ k ];
+            try {
+                String url = buildQuandlUrl(symbol);
+                List<String> csvData = getAllLines(url);
+                Feeder feeder = getQuandlFeeder(symbol);
+                TestController testController = new TestController(symbol);
+                log.info("Starting backtest (" + k + "," + symbol + "). Read " + csvData.size() + " lines.");
+                int r;
+                for (r = 0; r < csvData.size(); r++) {
+                    String line = csvData.get(r);
+                    feeder.feed(line.trim(), testController);
                 }
+                testController.closeLogHandlers();
+                log.info("Backtest complete (" + k + "," + symbol + "). Fed " + r + " lines");
             }
-            setNextQuandlIndex( i + 1 );
-            log.info("Backtest complete (" + i + "," + symbol + "). Read " + r + " lines");
+            catch (StbBackTestException e) {
+                log.log(Level.SEVERE,"Backtest failed: ", e);
+            }
+
+            if ( k < allSymbols.length - 1 )
+                resetTa();
         }
-        catch ( Exception e ) {
-            e.printStackTrace();
-            log.log(Level.SEVERE, "Backtest failed", e);
-        }
-        finally {
-            log.exiting("Schedule", "main");
-        }
+        log.info(allSymbols.length + " symbols complete. exiting schedule");
+
     }
 
     private static int getNextQuandlIndex() throws IOException {
@@ -79,11 +85,31 @@ public class QuandlTestSchedule {
         return symbol;
     }
 
-    private static Scanner getCsvScanner( String url ) throws Exception {
+    private static List<String> getAllLines(String url ) throws IOException {
         CloseableHttpClient client = HttpClients.createDefault();
         HttpGet get = new HttpGet( url );
         CloseableHttpResponse response = client.execute(get);
-        return new Scanner( response.getEntity().getContent() );
+        StatusLine sLine = response.getStatusLine();
+        if ( sLine.getStatusCode() != 200 )
+            throw new StbBackTestException( sLine.toString() );
+        InputStream is = response.getEntity().getContent();
+        InputStreamReader isReader = new InputStreamReader( is );
+        BufferedReader reader = new BufferedReader( isReader );
+        List<String> allLines = new ArrayList<>();
+        String line;
+        while ( (line = reader.readLine() ) != null ) {
+            String trimmedLine = line.trim();
+            if ( !trimmedLine.isEmpty() )
+                allLines.add(line);
+        }
+        is.close();
+        isReader.close();
+        reader.close();
+        response.close();
+        client.close();
+        allLines.remove( 0 ); /* Remove heaader */
+        Collections.reverse( allLines );
+        return allLines;
     }
 
     private static String buildQuandlUrl( String symbol ) {

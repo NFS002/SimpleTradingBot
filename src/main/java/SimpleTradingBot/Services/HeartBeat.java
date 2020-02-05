@@ -42,7 +42,7 @@ public class HeartBeat {
 
     public void register( LiveController controller ) {
         this.log.entering( this.getClass().getSimpleName(), "register");
-        String symbol = controller.getSummary().getSymbol();
+        String symbol = controller.getSymbol();
         if ( !hasRegistered(controller) ) {
             this.log.info( "Registering controller: " + symbol);
             this.controllers.add( controller );
@@ -55,10 +55,8 @@ public class HeartBeat {
     private boolean hasRegistered(LiveController controller) {
 
         for (LiveController assetController : controllers) {
-            TickerStatistics registeredSummary = assetController.getSummary();
-            TickerStatistics newSummary = controller.getSummary();
-            String newSymbol = newSummary.getSymbol();
-            String registeredSymbol = registeredSummary.getSymbol();
+            String newSymbol = controller.getSymbol();
+            String registeredSymbol = assetController.getSymbol();
             if (newSymbol.equals(registeredSymbol))
                 return true;
         }
@@ -71,8 +69,7 @@ public class HeartBeat {
         this.log.entering( this.getClass().getSimpleName(), "close" );
         int index = -1;
         for (int i = 0; i < controllers.size(); i++) {
-            TickerStatistics registeredSummary = this.controllers.get(i).getSummary();
-            String registeredSymbol = registeredSummary.getSymbol();
+            String registeredSymbol = this.controllers.get(i).getSymbol();
             if ( symbol.equals(registeredSymbol) ) {
                 this.log.warning( "Deregistering: " + registeredSymbol );
                 index = i;
@@ -139,8 +136,7 @@ public class HeartBeat {
         this.log.entering( this.getClass().getSimpleName(), "_maintenance");
 
         for (LiveController controller : this.controllers) {
-            TickerStatistics summary = controller.getSummary();
-            String symbol = summary.getSymbol();
+            String symbol = controller.getSymbol();
             this.log.info("Performing maintenance for symbol: " + symbol);
 
             if (controller.isPaused())
@@ -159,7 +155,7 @@ public class HeartBeat {
 
     private boolean checkHearbeat( LiveController controller ) {
         this.log.entering( this.getClass().getSimpleName(), "checkHeartbeat");
-        String symbol = controller.getSummary().getSymbol();
+        String symbol = controller.getSymbol();
         this.log.info( "Checking heartbeat for symbol: " + symbol );
         TimeSeries series = controller.getTimeSeries();
         ZonedDateTime endTime = series.getLastBar().getEndTime();

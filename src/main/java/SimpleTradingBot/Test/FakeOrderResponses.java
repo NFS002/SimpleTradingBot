@@ -38,21 +38,9 @@ public class FakeOrderResponses {
 
         switch ( n ) {
 
-            case 0:
-
-                return new OrderStatus[]{ PARTIALLY_FILLED, PARTIALLY_FILLED, CANCELED };
-
-            case 1:
-
-                return new OrderStatus[]{ NEW, PARTIALLY_FILLED, PARTIALLY_FILLED, FILLED };
-
-            case 2:
-
-                return new OrderStatus[]{ EXPIRED, REJECTED };
-
             default:
 
-                return new OrderStatus[]{ PENDING_CANCEL, CANCELED };
+                return new OrderStatus[]{ FILLED };
 
         }
 

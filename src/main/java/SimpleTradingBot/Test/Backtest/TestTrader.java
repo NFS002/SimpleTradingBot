@@ -17,6 +17,9 @@ import com.binance.api.client.exception.BinanceApiException;
 import com.binance.api.client.domain.market.TickerStatistics;
 import org.ta4j.core.Bar;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -42,14 +45,17 @@ public class TestTrader {
 
     private final PositionState state;
 
+    private PrintWriter rtWriter;
+
     /* Constructor */
-    TestTrader( String symbol ) {
+    TestTrader( String symbol, File baseDir ) {
         String loggerName = this.getClass().getSimpleName();
         this.symbol = symbol;
         this.cycles = new ArrayList<>();
         this.log = Logger.getLogger("root." + symbol + "." + loggerName);
         this.trailingStop = new TrailingStop( symbol );
         this.state = new PositionState();
+        initRtWriter( baseDir );
     }
 
     /* Getters */
@@ -164,19 +170,28 @@ public class TestTrader {
                     if (exQty.compareTo(BigDecimal.ZERO) > 0)
                         phase = HOLD;
                     else {
-                        if (!lastCycle.isFinalised())
+                        if (!lastCycle.isFinalised()) {
+                            lastCycle.finalise();
                             Static.logRt(lastCycle);
+                            Static.logRt(this.log, this.rtWriter, lastCycle);
+                        }
                         phase = CLEAR;
                     }
-                } else
+                }
+                else
                     phase = BUY;
-            } else {
+            }
+            else {
                 this.findAndSetFlags(lastSell);
                 if (this.state.getFlags() == NONE) {
-                    if (!lastCycle.isFinalised())
+                    if (!lastCycle.isFinalised()) {
+                        lastCycle.finalise();
                         Static.logRt(lastCycle);
+                        Static.logRt(this.log, this.rtWriter, lastCycle);
+                    }
                     phase = CLEAR;
-                } else
+                }
+                else
                     phase = SELL;
             }
             this.log.info("Determined phase: " + phase);
@@ -346,6 +361,16 @@ public class TestTrader {
     private synchronized NewOrderResponse trySubmit(NewOrder order, BigDecimal close )  {
         log.entering(this.getClass().getSimpleName(), "submit");
         return fakeNewResponse( order, close.toPlainString() );
+    }
+
+    private void initRtWriter( File baseDir ) {
+        try {
+            rtWriter = new PrintWriter( baseDir + "/rt.csv");
+            rtWriter.append( Cycle.CSV_HEADER ).flush();
+        }
+        catch ( IOException e ) {
+            log.warning( "Cant create necessary rt files. Skipping rt logging" );
+        }
     }
 
 }

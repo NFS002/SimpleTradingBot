@@ -35,8 +35,8 @@ public class TimeKeeper {
 
     private long endStreamTime;
 
-    public TimeKeeper(TickerStatistics statistics) throws STBException {
-        this.log = Logger.getLogger("root." + statistics.getSymbol() + ".tk");
+    public TimeKeeper( String symbol ) throws STBException {
+        this.log = Logger.getLogger("root." + symbol + ".tk");
         this.client = Static.getFactory().newRestClient();
         this.nServerChecks = 0;
         this.startStreamTime = this.endStreamTime = 0;

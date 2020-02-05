@@ -84,7 +84,7 @@ public class BinanceLiveSchedule {
         for ( TickerStatistics statistics : statisticsList ) {
             String symbol = statistics.getSymbol();
             log.info( "Beginning live stream of symbol" + symbol);
-            LiveController controller = new LiveController( statistics );
+            LiveController controller = new LiveController( statistics.getSymbol() );
             controller.liveStream();
             heartBeat.register( controller );
         }

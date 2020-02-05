@@ -17,6 +17,9 @@ import com.binance.api.client.domain.account.request.OrderStatusRequest;
 import com.binance.api.client.exception.BinanceApiException;
 import org.ta4j.core.Bar;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -49,8 +52,10 @@ public class LiveTrader {
 
     private int nErr;
 
+    private PrintWriter rtWriter;
+
     /* Constructor */
-    LiveTrader( String symbol ) {
+    LiveTrader( String symbol, File baseDir ) {
         String loggerName = this.getClass().getSimpleName();
         this.symbol = symbol;
         this.cycles = new ArrayList<>();
@@ -60,6 +65,7 @@ public class LiveTrader {
         this.state = new PositionState();
         this.constraints = getConstraint( symbol );
         this.nErr = 0;
+        initRtWriter( baseDir );
     }
 
     /* Getters */
@@ -182,19 +188,28 @@ public class LiveTrader {
                     if (exQty.compareTo(BigDecimal.ZERO) > 0)
                         phase = HOLD;
                     else {
-                        if (!lastCycle.isFinalised())
+                        if (!lastCycle.isFinalised()) {
+                            lastCycle.finalise();
                             Static.logRt(lastCycle);
+                            Static.logRt(this.log, this.rtWriter, lastCycle);
+                        }
                         phase = CLEAR;
                     }
-                } else
+                }
+                else
                     phase = BUY;
-            } else {
+            }
+            else {
                 this.findAndSetFlags(lastSell);
                 if (this.state.getFlags() == NONE) {
-                    if (!lastCycle.isFinalised())
+                    if (!lastCycle.isFinalised()) {
+                        lastCycle.finalise();
                         Static.logRt(lastCycle);
+                        Static.logRt(this.log, this.rtWriter, lastCycle);
+                    }
                     phase = CLEAR;
-                } else
+                }
+                else
                     phase = SELL;
             }
             this.log.info("Determined phase: " + phase);
@@ -409,6 +424,16 @@ public class LiveTrader {
         }
 
         return response;
+    }
+
+    private void initRtWriter( File baseDir ) {
+        try {
+            rtWriter = new PrintWriter( baseDir + "/rt.csv");
+            rtWriter.append( Cycle.CSV_HEADER ).flush();
+        }
+        catch ( IOException e ) {
+            log.warning( "Cant create necessary rt files. Skipping rt logging" );
+        }
     }
 
 }

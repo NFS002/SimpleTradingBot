@@ -2,21 +2,16 @@ package SimpleTradingBot.Test.Backtest;
 
 import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Controller.LiveController;
-import SimpleTradingBot.Controller.LiveTrader;
 import SimpleTradingBot.Controller.TAbot;
 import SimpleTradingBot.Exception.STBException;
+import SimpleTradingBot.Exception.StbBackTestException;
 import SimpleTradingBot.Models.PositionState;
-import SimpleTradingBot.Models.QueueMessage;
 import SimpleTradingBot.Util.Handler;
 import SimpleTradingBot.Util.Static;
 import SimpleTradingBot.Test.FakeOrderResponses;
 import SimpleTradingBot.Test.TestLevel;
 import com.binance.api.client.BinanceApiCallback;
-import com.binance.api.client.BinanceApiRestClient;
-import com.binance.api.client.BinanceApiWebSocketClient;
 import com.binance.api.client.domain.event.CandlestickEvent;
-import com.binance.api.client.domain.market.Candlestick;
-import com.binance.api.client.exception.BinanceApiException;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseTimeSeries;
@@ -29,8 +24,7 @@ import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
 import static SimpleTradingBot.Config.Config.*;
 
@@ -56,28 +50,25 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
 
     public TestController( String symbol ) throws IOException {
 
-        this.symbol = symbol;
+        File baseDir = initBaseDir( symbol );
         BaseTimeSeries.SeriesBuilder builder = new BaseTimeSeries.SeriesBuilder();
         builder.withNumTypeOf( PrecisionNum::valueOf )
                 .withMaxBarCount( MAX_BAR_COUNT )
                 .withName( symbol );
-
+        this.symbol = symbol;
         this.timeSeries = builder.build();
-        this.buyer = new TestTrader( symbol );
+        this.buyer = new TestTrader( symbol, baseDir );
         this.handler = new Handler( symbol );
         this.taBot = new TAbot( symbol );
         this.coolOff = 0;
 
-        File baseDir = initBaseDir();
-
         if ( LOG_TS_AT != -1 )
             initTsWriter( baseDir );
 
-        initLogger( );
+        initLogger( baseDir );
 
         if ( TEST_LEVEL == TestLevel.FAKEORDER )
             FakeOrderResponses.register( symbol );
-
     }
 
     /* Getters & Setters */
@@ -93,9 +84,10 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
     @Override
     public void onFailure( Throwable cause ) {
         this.log.entering( this.getClass().getSimpleName(), "onFailure" );
-        log.log( Level.SEVERE, cause.getMessage(), cause );
-        RuntimeException e = new RuntimeException( cause );
+        this.log.log( Level.SEVERE, cause.getMessage(), cause );
+        StbBackTestException e = new StbBackTestException( cause );
         this.log.exiting( this.getClass().getSimpleName(), "onFailure" );
+        this.closeLogHandlers();
         throw e;
     }
 
@@ -258,8 +250,8 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
         this.coolOff = Config.COOL_DOWN;
     }
 
-    private File initBaseDir() throws STBException {
-        File dir = new File(Static.OUT_DIR + this.symbol);
+    private File initBaseDir( String symbol ) throws STBException {
+        File dir = new File(Static.ROOT_OUT + symbol);
         if (!dir.exists() && !dir.mkdirs())
             throw new STBException( 60 );
         return dir;
@@ -279,9 +271,17 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
         this.tsWriter.append( header ).append("\n").flush();
     }
 
-    private void initLogger( ) {
+    private void initLogger( File baseDir ) throws IOException {
         this.log = Logger.getLogger("root." + this.symbol );
-        log.setLevel( Level.ALL );
-        log.setUseParentHandlers( true );
+        this.log.setLevel( Level.ALL );
+        FileHandler handler = new FileHandler( baseDir + "/debug.log" );
+        handler.setFormatter( new XMLFormatter() );
+        this.log.addHandler( handler );
+        this.log.setUseParentHandlers( true );
+    }
+
+    public void closeLogHandlers() {
+        for (java.util.logging.Handler h : this.log.getHandlers() )
+            h.close();
     }
 }

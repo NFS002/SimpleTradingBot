@@ -1,13 +1,16 @@
 package SimpleTradingBot.Rules;
 
 import SimpleTradingBot.Rules.xrules.ContinouslyInSlopeRule;
+import SimpleTradingBot.Util.LimitedList;
 import org.ta4j.core.Rule;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.volume.OnBalanceVolumeIndicator;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
-public class OBV implements IRule {
+public class OBVSlope implements IRule {
 
     private final BigDecimal minSlope;
 
@@ -17,14 +20,14 @@ public class OBV implements IRule {
 
     private String next;
 
-    public OBV(int minSlope, int maxSlope, int minCount ) {
+    public OBVSlope(int minSlope, int maxSlope, int minCount ) {
         this.minSlope = BigDecimal.valueOf( minSlope );
         this.maxSlope = ( maxSlope <= 0 ) ? null : BigDecimal.valueOf( maxSlope );
         this.minCount = minCount;
-        this.next = getHeader();
+        this.next = this.getHeader();
     }
 
-    public OBV( ) {
+    public OBVSlope( ) {
         this( 70, -1, 100 );
     }
 

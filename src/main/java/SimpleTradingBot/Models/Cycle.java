@@ -15,6 +15,20 @@ import static SimpleTradingBot.Util.Static.toReadableDuration;
 
 public class Cycle {
 
+    public static int id = 0;
+
+    public static BigDecimal netGain = BigDecimal.ZERO;
+
+    public static int nwt = 0;
+
+    public static int nlt = 0;
+
+    public static int nnt = 0;
+
+    public static int wl = 0;
+
+    public static double sharpeRatio = 0;
+
     private final String symbol;
 
     private final Position buyPosition;
@@ -57,9 +71,9 @@ public class Cycle {
     private BigDecimal closePrice;
 
     public static final String CSV_HEADER =
-            "symbol,openPrice,openTime,buyId,nBuyUpdates,lastBuyStatus,origBuyQty,exBuyQty," +
+            "id,symbol,openPrice,openTime,buyId,nBuyUpdates,lastBuyStatus,origBuyQty,exBuyQty," +
             "closePrice,closeTime,closeId,nSellUpdates,lastSellStatus,origSellQty,exSellQty," +
-            "holdTime,gain,netGain\n";
+            "holdTime,gain,nwt,nlt,nnt,ntt,wl,gain,netGain\n";
 
     public Cycle ( Position buyPosition, BigDecimal openPrice ) {
         this.finalised = false;
@@ -165,17 +179,14 @@ public class Cycle {
         this.nBuyUpdates = this.buyPosition.getnUpdate();
         this.lastBuyStatus = lastUpdate.getStatus();
         this.exBuyQty = lastUpdate.getExecutedQty();
-
-        if ( this.sellPosition == null ) {
-            this.gain = BigDecimal.ZERO;
-            this.nSellUpdates = 0;
-            this.closeId = 0;
-            this.closeTime = 0;
-            this.closePrice = BigDecimal.ZERO;
-            this.holdTime = 0;
-            this.lastSellStatus = null;
-        }
-        else {
+        this.gain = BigDecimal.ZERO;
+        this.nSellUpdates = 0;
+        this.closeId = 0;
+        this.closeTime = 0;
+        this.closePrice = BigDecimal.ZERO;
+        this.holdTime = 0;
+        this.lastSellStatus = null;
+        if ( this.sellPosition != null ) {
             BigDecimal openPrice = new BigDecimal( this.buyPosition.getOriginalOrderResponse().getPrice() );
             BigDecimal closePrice = new BigDecimal( this.sellPosition.getOriginalOrderResponse().getPrice() );
             this.gain = ( closePrice.subtract( openPrice ))
@@ -192,6 +203,21 @@ public class Cycle {
             this.closeTime = originalSell.getTimestamp();
             this.holdTime = this.closeTime - this.openTime;
         }
+        int com = this.gain.compareTo( BigDecimal.ZERO );
+        boolean won = com > 0;
+        boolean loss = com < 0;
+        if ( won )
+            nwt += 1;
+        else if ( loss )
+            nlt += 1;
+        else
+            nnt += 1;
+        if ( nlt == 0 )
+            wl = Integer.MAX_VALUE;
+        else
+            wl = nwt / nlt;
+        netGain = netGain.add( this.gain, MathContext.DECIMAL64);
+        id += 1;
         this.finalised = true;
     }
 
@@ -210,22 +236,25 @@ public class Cycle {
     public String toCsv() {
         NewOrder originalBuyOrder = this.getBuyPosition().getOriginalOrder();
         String symbol = originalBuyOrder.getSymbol();
-        return symbol + "," +
+        return id + "," +
+                symbol + "," +
                 this.openPrice + "," +
-                toReadableTime( this.openTime ) + "," +
+                toReadableTime(this.openTime) + "," +
                 this.buyId + "," +
                 this.nBuyUpdates + "," +
                 this.lastBuyStatus + "," +
                 this.origBuyQty + "," +
                 this.exBuyQty + "," +
                 this.closePrice + "," +
-                toReadableTime( this.closeTime ) + "," +
+                toReadableTime(this.closeTime) + "," +
                 this.closeId + "," +
                 this.nSellUpdates + "," +
                 this.lastSellStatus + "," +
                 this.origSellQty + "," +
                 this.exSellQty + "," +
-                toReadableDuration( this.holdTime ) + "," +
-                this.gain;
+                toReadableDuration(this.holdTime) + "," +
+                nwt + "," + nlt + "," + nnt + "," +
+                (nwt + nlt + nlt) + wl + "," +
+                this.gain + "," + netGain + "\n";
     }
 }

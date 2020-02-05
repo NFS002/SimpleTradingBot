@@ -25,20 +25,20 @@ public class MACD implements IRule {
         this.shortPeriod = shortPeriod;
         this.longPeriod = longPeriod;
         this.signalPeriod = signalPeriod;
-        this.getHeader();
+        this.next = this.getHeader();
     }
 
     public MACD( ) {
         this( 12, 26, 9 );
     }
 
-    private void getHeader() {
+    private String getHeader() {
         StringBuilder builder = new StringBuilder();
         String name = this.getName();
         builder.append( name ).append("-").append( this.shortPeriod )
                 .append("-").append( this.longPeriod ).append(",");
         builder.append( name ).append("s-").append( this.signalPeriod ).append(",");
-        this.next = builder.toString();
+        return builder.toString();
     }
 
     @Override
@@ -49,12 +49,11 @@ public class MACD implements IRule {
         MACDIndicator macdIndicator = new MACDIndicator( closePriceIndicator, this.shortPeriod, this.longPeriod );
         BigDecimal v0 = (BigDecimal) macdIndicator.getValue( index ).getDelegate();
         builder.append( v0.toPlainString() ).append(",");
-
-        EMAIndicator emaIndicator = new EMAIndicator( macdIndicator, this.signalPeriod );
-        BigDecimal v1 = (BigDecimal) emaIndicator.getValue( index ).getDelegate();
+        EMAIndicator macdsIndicator = new EMAIndicator( macdIndicator, this.signalPeriod );
+        BigDecimal v1 = (BigDecimal) macdsIndicator.getValue( index ).getDelegate();
         builder.append( v1.toPlainString() ).append(",");
         this.next = builder.toString();
-        return new OverIndicatorRule( macdIndicator, emaIndicator );
+        return new OverIndicatorRule( macdIndicator, macdsIndicator );
     }
 
     @Override
