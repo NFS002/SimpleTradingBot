@@ -1,20 +1,16 @@
-package SimpleTradingBot.Rules.xrules;
+package SimpleTradingBot.Rules.addons;
 
-import SimpleTradingBot.Controller.TrailingStop;
 import org.ta4j.core.Indicator;
 import org.ta4j.core.Rule;
 import org.ta4j.core.TradingRecord;
 import org.ta4j.core.num.Num;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
-import java.util.ArrayList;
+import static SimpleTradingBot.Rules.addons.Common.pDiff;
 
 public class ContinouslyInSlopeRule implements Rule {
 
     private Indicator<Num> indicator;
-
-    private ArrayList<BigDecimal> history;
 
     private BigDecimal minSlope;
 
@@ -52,14 +48,9 @@ public class ContinouslyInSlopeRule implements Rule {
         int i1 = Math.max( 0, index - 1 );
         BigDecimal v0 = (BigDecimal) this.indicator.getValue( i0 ).getDelegate();
         BigDecimal v1 = (BigDecimal) this.indicator.getValue( i1 ).getDelegate();
-        BigDecimal pDiff = this.getPdiff( v0, v1 );
+        BigDecimal pDiff = pDiff( v0, v1 );
         boolean minSlopeSatisfied = pDiff.compareTo( this.minSlope ) >= 0;
         boolean maxSlopeSatisfied = this.maxSlope == null || pDiff.compareTo(this.maxSlope) <= 0;
         return minSlopeSatisfied && maxSlopeSatisfied;
-    }
-
-    private BigDecimal getPdiff(BigDecimal v0, BigDecimal v1) {
-        BigDecimal result = (v1.subtract(v0, MathContext.DECIMAL64)).divide( v0, MathContext.DECIMAL64 );
-        return result.multiply( BigDecimal.valueOf( 100 ));
     }
 }

@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Random;
 
 import static com.binance.api.client.domain.OrderStatus.*;
+import static SimpleTradingBot.Util.Static.safeDecimal;
 
 /* Fake order responses and updates for testing order cycles */
 public class FakeOrderResponses {
@@ -35,19 +36,12 @@ public class FakeOrderResponses {
     }
 
     private static OrderStatus[] getUpdatePlan( int n ) {
-
         switch ( n ) {
-
-            default:
-
-                return new OrderStatus[]{ FILLED };
-
+            default: return new OrderStatus[]{ FILLED };
         }
-
     }
 
-    public static Order getNextUpdate( NewOrderResponse response ) {
-        String symbol = response.getSymbol();
+    private static OrderStatus getNextStatusAndIncrementStageMap( String symbol ) {
         if ( !stageMap.containsKey( symbol) )
             throw new IllegalArgumentException();
         int stage = stageMap.get( symbol );
@@ -59,7 +53,13 @@ public class FakeOrderResponses {
             stageMap.put( symbol, 0 );
         else
             stageMap.put( symbol, stage  );
-        Order update = fakeUpdate( response );
+        return status;
+    }
+
+    public static Order getNextUpdate( NewOrderResponse response, BigDecimal close ) {
+        String symbol = response.getSymbol();
+        OrderStatus status = getNextStatusAndIncrementStageMap( symbol );
+        Order update = fakeUpdate( response, close );
         update.setStatus( status );
         if ( status == EXPIRED || status == REJECTED )
             update.setExecutedQty(BigDecimal.ZERO.toString() );
@@ -88,8 +88,8 @@ public class FakeOrderResponses {
         return response;
     }
 
-    public static NewOrderResponse fakeNewResponse(NewOrder newOrder, String price ) {
-        NewOrderResponse response = fakeFilledResponse( newOrder, price );
+    public static NewOrderResponse fakeNewResponse(NewOrder newOrder, String close ) {
+        NewOrderResponse response = fakeFilledResponse( newOrder, close );
         response.setStatus( OrderStatus.NEW );
         return response;
     }
@@ -126,13 +126,14 @@ public class FakeOrderResponses {
         return response;
     }
 
-    private static Order fakeUpdate( NewOrderResponse newOrder  ) {
+    private static Order fakeUpdate( NewOrderResponse newOrder, BigDecimal close  ) {
         Order update = new Order();
         update.setOrderId( newOrder.getOrderId() );
         update.setSide( newOrder.getSide() );
         update.setOrigQty( newOrder.getOrigQty() );
         update.setSymbol( newOrder.getSymbol() );
         update.setTimeInForce( TimeInForce.FOK );
+        update.setPrice( safeDecimal( close ) );
         update.setExecutedQty( String.valueOf( Double.parseDouble(update.getOrigQty())/2 ) );
         return update;
     }

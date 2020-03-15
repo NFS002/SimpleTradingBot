@@ -1,14 +1,11 @@
 package SimpleTradingBot.Rules;
 
-import SimpleTradingBot.Rules.xrules.ContinouslyInSlopeRule;
-import SimpleTradingBot.Util.LimitedList;
+import SimpleTradingBot.Rules.addons.ContinouslyInSlopeRule;
 import org.ta4j.core.Rule;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.volume.OnBalanceVolumeIndicator;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 public class OBVSlope implements IRule {
 

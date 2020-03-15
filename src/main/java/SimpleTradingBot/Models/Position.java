@@ -119,12 +119,12 @@ public class Position {
         this.originalOrderResponse = originalOrderResponse;
     }
 
-    public Order getUpdatedOrder( int i ) {
-        return updatedOrders[ i ];
+    public Order getUpdate(int i ) {
+        return this.updatedOrders[ i ];
     }
 
     public int getnUpdate() {
-        return nUpdate;
+        return this.nUpdate;
     }
 
 }

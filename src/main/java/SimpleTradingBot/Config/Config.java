@@ -63,7 +63,7 @@ public class Config {
 
     public static final int LOG_TS_AT = 0;
 
-    final public static int START_AT = 501;
+    final public static int START_AT = 0;
 
     public static final boolean INIT_TS = true;
 
@@ -79,10 +79,9 @@ public class Config {
 
     final public static int MAX_BAR_COUNT = 600;
 
-    final public static int COOL_DOWN = 5;
+    final public static int COOL_DOWN = 15;
 
-    /* For test schedule only */
-    final public static String DATASET_ID = "C-AAPL-19";
+    final public static boolean SKIP_SLIPPAGE_TRADES = true;
 
     final public static String QUANDL_BASE_URL = "https://www.quandl.com/api/v3/datasets/EOD/";
 
@@ -91,6 +90,7 @@ public class Config {
     final public static String BINANCE_SECRET_KEY;
 
     final public static String QUANDL_API_KEY;
+
 
     static {
         BINANCE_API_KEY = System.getenv("BINANCE_API_KEY");
@@ -104,7 +104,8 @@ public class Config {
 
     public static void resetTa() {
         TA_RULES = new IRule[] {
-                new SMACross(14, 50)
+                new SMACross(14, 50, 3 ),
+                new ROCP( 1, 0 )
         };
     }
 

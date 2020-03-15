@@ -20,7 +20,7 @@ import static SimpleTradingBot.Config.Config.resetTa;
 public class QuandlTestSchedule {
 
 
-    public static void main(String... args) throws IOException {
+    public static void main(String... args)  {
         final String[] allSymbols = new String[] {
                 "HD", "DIS", "MSFT", "BA", "MMM","PFE","NKE",
                 "JNJ","MCD","INTC","XOM","GS","JPM","AXP","V",
@@ -47,7 +47,7 @@ public class QuandlTestSchedule {
                 testController.closeLogHandlers();
                 log.info("Backtest complete (" + k + "," + symbol + "). Fed " + r + " lines");
             }
-            catch (StbBackTestException e) {
+            catch (IOException| StbBackTestException e) {
                 log.log(Level.SEVERE,"Backtest failed: ", e);
             }
 

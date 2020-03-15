@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.Instant;
@@ -27,13 +26,19 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.logging.*;
 
+import static SimpleTradingBot.Config.Config.SKIP_SLIPPAGE_TRADES;
+
 public class Static {
 
     public static String ROOT_OUT;
 
     public static BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance( Config.BINANCE_API_KEY, Config.BINANCE_SECRET_KEY);
 
-    public static DateTimeFormatter timeFormatter = DateTimeFormatter.ofLocalizedTime( FormatStyle.SHORT );
+    public static DateTimeFormatter binanceTimeFormatter = DateTimeFormatter.ofLocalizedTime( FormatStyle.SHORT );
+
+    public static DateTimeFormatter quandlDateTimeFormatter = DateTimeFormatter.ofLocalizedDate( FormatStyle.SHORT );
+
+    public static DateTimeFormatter fullDateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyy HH:mm:ss");
 
     public static HashMap<String, FilterConstraints> constraints;
 
@@ -117,17 +122,41 @@ public class Static {
         constraints.remove( symbol );
     }
 
-    public static synchronized String toReadableTime(long millis ) {
+    public static synchronized String toReadableTime( long millis ) {
         if ( millis < 0)
             return String.valueOf( millis );
         Instant instant = Instant.ofEpochMilli( millis );
         ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant( instant, Config.ZONE_ID);
-        return timeFormatter.format( zonedDateTime );
+        return binanceTimeFormatter.format( zonedDateTime );
+    }
+
+    public static synchronized String toReadableTime( ZonedDateTime dateTime ) {
+        return binanceTimeFormatter.format( dateTime );
+    }
+
+    public static synchronized String toReadableDate( long millis ) {
+        if ( millis < 0)
+            return String.valueOf( millis );
+        Instant instant = Instant.ofEpochMilli( millis );
+        ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant( instant, Config.ZONE_ID);
+        return quandlDateTimeFormatter.format( zonedDateTime );
+    }
+
+    public static synchronized String toReadableDate( ZonedDateTime dateTime ) {
+        return quandlDateTimeFormatter.format( dateTime );
     }
 
     public static synchronized String toReadableDuration( long millis ) {
         Duration duration = Duration.ofMillis( millis );
         return String.format("%d:%02d:%02d", duration.toHours(), duration.toMinutesPart(), duration.toSecondsPart());
+    }
+
+    public static synchronized String toReadableDateTime( long millis ) {
+        if ( millis < 0)
+            return String.valueOf( millis );
+        Instant instant = Instant.ofEpochMilli( millis );
+        ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant( instant, Config.ZONE_ID);
+        return fullDateTimeFormatter.format( zonedDateTime );
     }
 
     public static synchronized String safeDecimal( BigDecimal bigDecimal, int maxLength ) {
@@ -223,14 +252,14 @@ public class Static {
     }
 
     public static synchronized void logRt(Cycle cycle ) {
-        if (rtWriter != null)
-            rtWriter.append(cycle.toCsv()).flush();
-    }
-
-    public static synchronized void logRt(Logger logger, PrintWriter writer, Cycle cycle ) {
-        if (writer != null) {
-            logger.info("Logging rt for symbol: " + cycle.getSymbol());
-            writer.append(cycle.toCsv()).flush();
+        if (rtWriter != null) {
+            if ( SKIP_SLIPPAGE_TRADES && cycle.hasSlippage() ) {
+                log.info("Skipping logging rt for symbol: " + cycle.getSymbol() + " due to slippage");
+            }
+            else {
+                log.info("Logging rt for symbol: " + cycle.getSymbol());
+                rtWriter.append(cycle.toCsv()).flush();
+            }
         }
     }
 }

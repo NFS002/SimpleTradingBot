@@ -16,16 +16,19 @@ import com.binance.api.client.domain.account.request.OrderStatusRequest;
 import com.binance.api.client.exception.BinanceApiException;
 import com.binance.api.client.domain.market.TickerStatistics;
 import org.ta4j.core.Bar;
+import org.ta4j.core.indicators.ROCIndicator;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static SimpleTradingBot.Config.Config.STOP_LOSS_PERCENT;
 import static com.binance.api.client.domain.account.NewOrder.marketBuy;
 import static com.binance.api.client.domain.account.NewOrder.marketSell;
 import static SimpleTradingBot.Models.PositionState.Phase.*;
@@ -104,7 +107,7 @@ public class TestTrader {
             BigDecimal initialStop = close.multiply(Config.STOP_LOSS_PERCENT);
             this.trailingStop.setStopLoss(initialStop);
             Position position = new Position(newOrder, response);
-            Cycle newCycle = new Cycle( position, close );
+            Cycle newCycle = new Cycle( position );
             this.cycles.add( newCycle );
         }
         this.log.info(newOrder.toString());
@@ -120,7 +123,7 @@ public class TestTrader {
         String dateTime = Static.toReadableTime( currTimeMillis );
         /* Get executed qty, or just use all our free balance */
         String symbol = this.symbol;
-        String qty = getSellQty();
+        String qty = this.getSellQty();
         NewOrder sellOrder = marketSell( symbol, qty );
         NewOrderResponse sellOrderResponse = trySubmit( sellOrder, close );
         if ( sellOrderResponse == null ) {
@@ -131,7 +134,7 @@ public class TestTrader {
             this.trailingStop.reset( );
             Cycle lastCycle = this.cycles.get( this.cycles.size() - 1 );
             Position sellPosition = new Position( sellOrder, sellOrderResponse );
-            lastCycle.setSellPosition( sellPosition, close );
+            lastCycle.setSellPosition( sellPosition );
         }
         this.log.info( String.format( "%s", sellOrder ) );
         this.log.info( String.format( "%s", sellOrderResponse ));
@@ -141,15 +144,8 @@ public class TestTrader {
     private String getSellQty( ) {
         Cycle currentCycle = this.cycles.get( this.cycles.size() - 1 );
         Position currentBuyPosition = currentCycle.getBuyPosition();
-        switch ( Config.TEST_LEVEL ) {
-            case REAL:
-                Order buyOrder = currentBuyPosition.getLastUpdate();
-                return buyOrder.getExecutedQty();
-            case FAKEORDER:
-            default:
-                NewOrder order = currentBuyPosition.getOriginalOrder();
-                return order.getQuantity();
-        }
+        Order order = currentBuyPosition.getLastUpdate();
+        return order.getExecutedQty();
     }
 
     void findAndSetState( ){
@@ -172,8 +168,8 @@ public class TestTrader {
                     else {
                         if (!lastCycle.isFinalised()) {
                             lastCycle.finalise();
-                            Static.logRt(lastCycle);
-                            Static.logRt(this.log, this.rtWriter, lastCycle);
+                            Static.logRt( lastCycle );
+                            this.logRt( lastCycle );
                         }
                         phase = CLEAR;
                     }
@@ -187,7 +183,7 @@ public class TestTrader {
                     if (!lastCycle.isFinalised()) {
                         lastCycle.finalise();
                         Static.logRt(lastCycle);
-                        Static.logRt(this.log, this.rtWriter, lastCycle);
+                        this.logRt( lastCycle );
                     }
                     phase = CLEAR;
                 }
@@ -206,13 +202,15 @@ public class TestTrader {
     private void findAndSetFlags( Position position ) {
         this.log.entering( this.getClass().getSimpleName(), "findAndSetFlags");
         int nUpdates = position.getnUpdate();
-        this.log.info( String.format("Finding phase and flags, nUpdates: %d", nUpdates) );
-        PositionState.Flags flags = NONE;
+        this.log.info( String.format("Finding phase and flags, nUpdates: %d", nUpdates ) );
+        PositionState.Flags flags;
         if ( nUpdates == 0 )
             flags = UPDATE;
+        else if ( nUpdates == MAX_ORDER_UPDATES - 1 )
+            flags = NONE;
         else if ( nUpdates == MAX_ORDER_UPDATES - 2 )
             flags = CANCEL;
-        else if ( nUpdates != MAX_ORDER_UPDATES - 1 ) {
+        else {
             Order lastOrder = position.getLastUpdate();
             OrderStatus lastStatus = lastOrder.getStatus();
             this.log.info( String.format("Last update status: %s", lastStatus));
@@ -222,6 +220,12 @@ public class TestTrader {
                 case PENDING_CANCEL:
                     flags = UPDATE;
                     break;
+                case CANCELED:
+                case FILLED:
+                    flags = NONE;
+                    break;
+                default:
+                    flags = CANCEL;
             }
         }
         this.log.info( "Found and set flags: " + flags );
@@ -235,6 +239,7 @@ public class TestTrader {
         if ( nCycles > 0 ) {
             BigDecimal close = (BigDecimal) bar.getClosePrice().getDelegate();
             this.updateStopLoss(close);
+            this.incTicks( nCycles );
             if (this.state.getFlags() != NONE) {
                 PositionState.Phase phase = this.state.getPhase();
                 switch (phase) {
@@ -256,6 +261,11 @@ public class TestTrader {
         log.exiting(this.getClass().getSimpleName(), "update");
     }
 
+    private void incTicks(int nCycles) {
+        Cycle lastCycle = this.cycles.get( nCycles - 1 );
+        lastCycle.incTicks();
+    }
+
     private void updateStopLoss( BigDecimal close ) {
         this.log.entering(this.getClass().getSimpleName(), "updateStopLoss");
         this.log.info("Updating stop loss");
@@ -274,17 +284,17 @@ public class TestTrader {
         long orderId = originalResponse.getOrderId();
         this.logPreUpdate( side, position, orderId, originalResponse );
         switch ( flags ) {
-            case RESTART:
-                restart( position, close );
-                break;
             case REVERT:
                 this.revertCycle( nCycles - 1 );
                 break;
             case CANCEL:
-                cancel( position, orderId );
+                cancel( position );
+                break;
+            case RESTART:
+                restart( position, close );
                 break;
             case UPDATE:
-                _update( position, originalResponse, orderId );
+                _update( position, originalResponse, close );
                 break;
         }
         this.log.exiting( this.getClass().getSimpleName(), "update", side );
@@ -327,11 +337,12 @@ public class TestTrader {
         this.log.exiting( this.getClass().getSimpleName(), "logPreUpdate");
     }
 
-    private void _update(Position position, NewOrderResponse response, long orderId ) {
+    private void _update(Position position, NewOrderResponse response, BigDecimal close ) {
         this.log.entering(this.getClass().getSimpleName(), "_update");
+        long orderId = position.getOriginalOrderResponse().getOrderId();
         OrderStatusRequest statusRequest = new OrderStatusRequest( response.getSymbol(), orderId );
         this.log.info( "Getting update: " + statusRequest );
-        Order order = getNextUpdate( response );
+        Order order = getNextUpdate( response, close );
         this.log.info( "Got update: " + order );
         position.setUpdatedOrder( order );
         log.exiting(this.getClass().getSimpleName(), "_update");
@@ -348,8 +359,9 @@ public class TestTrader {
         this.log.exiting(this.getClass().getSimpleName(), "restart" );
     }
 
-    private void cancel( Position position, long orderId ) {
+    private void cancel( Position position ) {
         this.log.entering(this.getClass().getSimpleName(), "cancel");
+        long orderId = position.getOriginalOrderResponse().getOrderId();
         CancelOrderRequest cancelOrderRequest = new CancelOrderRequest( this.symbol, orderId );
         this.log.info( "Cancelling order: " + cancelOrderRequest );
         CancelOrderResponse response = fakeCancelledResponse(cancelOrderRequest);
@@ -364,6 +376,7 @@ public class TestTrader {
     }
 
     private void initRtWriter( File baseDir ) {
+        ROCIndicator indicator;
         try {
             rtWriter = new PrintWriter( baseDir + "/rt.csv");
             rtWriter.append( Cycle.CSV_HEADER ).flush();
@@ -373,4 +386,21 @@ public class TestTrader {
         }
     }
 
+    public void logIfSlippage( BigDecimal fChange ) {
+        if ( fChange.compareTo( STOP_LOSS_PERCENT ) < 0 ) {
+            int nCycles = this.cycles.size();
+            if ( nCycles > 0 && this.state.isBuyOrHold() ) {
+                Cycle lastCycle = this.cycles.get( nCycles - 1 );
+                lastCycle.setSlippage();
+            }
+        }
+    }
+
+
+    private void logRt( Cycle cycle ) {
+        if (this.rtWriter != null) {
+            this.log.info("Logging rt for symbol: " + cycle.getSymbol());
+            this.rtWriter.append(cycle.toCsv()).flush();
+        }
+    }
 }

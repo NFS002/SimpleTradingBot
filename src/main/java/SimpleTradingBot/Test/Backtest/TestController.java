@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.logging.*;
@@ -56,6 +57,7 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
                 .withMaxBarCount( MAX_BAR_COUNT )
                 .withName( symbol );
         this.symbol = symbol;
+
         this.timeSeries = builder.build();
         this.buyer = new TestTrader( symbol, baseDir );
         this.handler = new Handler( symbol );
@@ -101,6 +103,7 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
             this.addBarToTimeSeries( nextBar );
             this.buyer.update( nextBar );
             this.buyer.findAndSetState( );
+            BigDecimal pChange = this.getPriceChangePercent();
             if ( this.shouldClose( nextBar ))
                 this.close( nextBar );
             else if ( this.shouldOpen( ) )
@@ -108,7 +111,7 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
             else
                 this.log.info("No action taken");
             this.buyer.findAndSetState( );
-            this.logs( nextBar );
+            this._log( nextBar, pChange );
         }
 
         catch (Throwable e) {
@@ -200,19 +203,36 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
         log.exiting(this.getClass().getName(), "addBarToTimeSeries");
     }
 
-    private void logs(Bar bar ) {
+    private BigDecimal getPriceChangePercent() {
+        int endIndex = this.timeSeries.getEndIndex();
+        if ( endIndex > 1 ) {
+            Bar lastBar = this.timeSeries.getBar( endIndex );
+            BigDecimal lastPrice = (BigDecimal) lastBar.getClosePrice().getDelegate();
+            Bar secondLastBar = this.timeSeries.getBar(endIndex - 1 );
+            BigDecimal secondLastPrice = (BigDecimal) secondLastBar.getClosePrice().getDelegate();
+            BigDecimal fChange = lastPrice.divide( secondLastPrice, MathContext.DECIMAL64 );
+            this.buyer.logIfSlippage( fChange );
+            return BigDecimal.ONE.subtract(fChange, MathContext.DECIMAL64).multiply( BigDecimal.valueOf( -100 ), MathContext.DECIMAL64 );
+        }
+        else return BigDecimal.ZERO;
+    }
+
+
+    private void _log(Bar bar, BigDecimal pChange ) {
         this.log.entering( this.getClass().getName(), "logTs");
         if ( LOG_TS_AT != -1 && this.timeSeries.getBarCount() >= LOG_TS_AT ) {
             ZonedDateTime dateTime = bar.getBeginTime();
-            String readableDateTime = dateTime.toLocalTime().format( Static.timeFormatter );
+            String readableDate = Static.toReadableDate( dateTime );
             BigDecimal close = (BigDecimal) bar.getClosePrice().getDelegate();
             PositionState state = getState();
             BigDecimal stopLoss = this.buyer.getTrailingStop().getStopLoss();
+            String csvStopLoss = stopLoss.compareTo( BigDecimal.ZERO ) == 0 ? "" : stopLoss.toPlainString();
 
             this.tsWriter
-                    .append(readableDateTime).append(",")
+                    .append(readableDate).append(",")
                     .append(close.toPlainString()).append(",")
-                    .append(stopLoss.toPlainString()).append(",")
+                    .append(pChange.toPlainString()).append(",")
+                    .append(csvStopLoss).append(",")
                     .append(state.toShortString())
                     .flush();
             this.logTa();
@@ -260,7 +280,7 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
     private void initTsWriter( File baseDir ) throws IOException {
         this.tsWriter = new PrintWriter( baseDir + "/ts.csv" );
         String taHeader = this.taBot.getNext();
-        String myHeader = "TIME,CLOSE,STOP,POS,";
+        String myHeader = "TIME,CLOSE,PCHANGE,STOP,POS,";
         int n = myHeader.length();
         int l = taHeader.length();
         if ( l > 1 )

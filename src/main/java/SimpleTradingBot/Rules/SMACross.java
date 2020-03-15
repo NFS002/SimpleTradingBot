@@ -1,79 +1,85 @@
 package SimpleTradingBot.Rules;
 
+import SimpleTradingBot.Rules.addons.SMACrossConfirm;
 import org.ta4j.core.Rule;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
-import org.ta4j.core.trading.rules.OverIndicatorRule;
 
 import java.math.BigDecimal;
+
+import static SimpleTradingBot.Rules.addons.SMACrossConfirm.confirm;
 
 
 public class SMACross implements IRule {
 
-    private int[] periods;
+    private int confirmPeriod;
+
+    private int[] smaPeriods;
 
     private String next;
 
     @Override
     public String getNext() {
-        return next;
+        return this.next;
     }
 
-    public SMACross( int p0, int p1, int ... periods ) {
-        int l = periods.length;
-        this.periods = new int[l + 2];
-        this.periods[0] = p0;
-        this.periods[1] = p1;
-        System.arraycopy(periods, 0, this.periods, 2, l);
+    public SMACross( int p0, int p1, int confirmPeriod ) {
+        this.confirmPeriod = confirmPeriod;
+        this.smaPeriods = new int[2];
+        this.smaPeriods[0] = p0;
+        this.smaPeriods[1] = p1;
         this.next = this.getHeader( );
+    }
+
+    public SMACross( int p0, int p1 ) {
+        this.confirmPeriod = 0;
+        this.smaPeriods = new int[2];
+        this.smaPeriods[0] = p0;
+        this.smaPeriods[1] = p1;
+        this.next = this.getHeader();
     }
 
     private String getHeader() {
         StringBuilder builder = new StringBuilder();
         String name = getName();
-        for ( int p : this.periods )
-            builder.append( name ).append( p ).append(",");
+        for ( int p : this.smaPeriods)
+            builder.append( name ).append("-").append( p ).append(",");
+        if ( this.confirmPeriod > 0 ) {
+            builder.append(SMACrossConfirm.getName()).append("-")
+                    .append(this.confirmPeriod).append(",");
+        }
         return builder.toString();
     }
 
     @Override
     public Rule apply( TimeSeries timeSeries, int index ) {
 
-        int nT = this.periods.length;
-        OverIndicatorRule[] rules = new OverIndicatorRule[ nT ];
         StringBuilder builder = new StringBuilder();
         ClosePriceIndicator closePriceIndicator = new ClosePriceIndicator( timeSeries );
+        int t = this.smaPeriods[ 0 ];
+        int t1 = this.smaPeriods[ 1 ];
 
-        for (int i = 0; i < nT - 1; i++) {
+        SMAIndicator sma = new SMAIndicator(closePriceIndicator, t );
+        SMAIndicator sma1 = new SMAIndicator(closePriceIndicator, t1 );
 
-            int t = this.periods[ i ];
-            int t2 = this.periods[ i + 1 ];
+        BigDecimal smaV = (BigDecimal) sma.getValue( index ).getDelegate();
+        builder.append( smaV.toPlainString() ).append(",");
 
-            SMAIndicator sma = new SMAIndicator(closePriceIndicator, t );
+        BigDecimal smaV1 = (BigDecimal) sma1.getValue( index ).getDelegate();
+        builder.append( smaV1.toPlainString() ).append(",");
 
-            SMAIndicator sma1 = new SMAIndicator(closePriceIndicator, t2 );
-
-            rules[i] = new OverIndicatorRule( sma, sma1 );
-
-
-            BigDecimal smaV = (BigDecimal) sma.getValue( index ).getDelegate();
-            builder.append( smaV.toPlainString() ).append(",");
-
-            if ( i == nT - 2 ) {
-                BigDecimal smaV1 = (BigDecimal) sma1.getValue(index).getDelegate();
-                builder.append( smaV1.toPlainString() ).append(",");
-            }
+        Rule rule;
+        if ( this.confirmPeriod > 0 ) {
+            boolean confirmed = confirm(sma, sma1, this.confirmPeriod, index );
+            builder.append(confirmed).append(",");
+            rule = ( (i, tR) -> confirmed );
         }
-
+        else {
+            rule = ( (i, tR) -> sma.getValue(index).isGreaterThan(sma1.getValue(index)) );
+        }
         this.next = builder.toString();
-        Rule masterRule = rules[0];
-
-        for (int i = 1; i < nT -1; i++ ) {
-            masterRule = masterRule.and(rules[i]);
-        }
-
-        return masterRule;
+        return rule;
     }
 
     @Override

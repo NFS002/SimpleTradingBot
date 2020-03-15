@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.time.*;
 import java.util.List;
 import java.util.Optional;
@@ -327,6 +328,8 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
                     /* Update local state */
                     this.buyer.findAndSetState( );
 
+                    BigDecimal pChange = this.getPriceChangePercent();
+
                     /* Do stuff */
                     if ( this.shouldClose( nextBar ))
                         this.close( nextBar );
@@ -341,7 +344,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
                     this.buyer.findAndSetState( );
 
                     /* Log */
-                    this.logs( nextBar );
+                    this._log( nextBar, pChange );
                 }
             }
         }
@@ -437,6 +440,20 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         log.exiting(this.getClass().getName(), "addBarToTimeSeries");
     }
 
+    private BigDecimal getPriceChangePercent() {
+        int endIndex = this.timeSeries.getEndIndex();
+        if ( endIndex > 1 ) {
+            Bar lastBar = this.timeSeries.getBar( endIndex );
+            BigDecimal lastPrice = (BigDecimal) lastBar.getClosePrice().getDelegate();
+            Bar secondLastBar = this.timeSeries.getBar(endIndex - 1 );
+            BigDecimal secondLastPrice = (BigDecimal) secondLastBar.getClosePrice().getDelegate();
+            BigDecimal fChange = lastPrice.divide( secondLastPrice, MathContext.DECIMAL64 );
+            this.buyer.logIfSlippage( fChange );
+            return BigDecimal.ONE.subtract(fChange, MathContext.DECIMAL64).multiply( BigDecimal.valueOf( -100 ), MathContext.DECIMAL64 );
+        }
+        else return BigDecimal.ZERO;
+    }
+
     public void liveStream() throws BinanceApiException {
         this.log.entering( this.getClass().getSimpleName(), "liveStream" );
         log.info("Attempting data stream....");
@@ -449,19 +466,21 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.log.exiting( this.getClass().getSimpleName(), "liveStream" );
     }
 
-    private void logs(Bar bar ) {
+    private void _log(Bar bar, BigDecimal pChange) {
         this.log.entering( this.getClass().getName(), "logTs");
         if ( LOG_TS_AT != -1 && this.timeSeries.getBarCount() >= LOG_TS_AT ) {
             ZonedDateTime dateTime = bar.getBeginTime();
-            String readableDateTime = dateTime.toLocalTime().format( Static.timeFormatter );
+            String readableTime = Static.toReadableTime( dateTime );
             BigDecimal close = (BigDecimal) bar.getClosePrice().getDelegate();
             PositionState state = getState();
             BigDecimal stopLoss = this.buyer.getTrailingStop().getStopLoss();
+            String csvStopLoss = stopLoss.compareTo( BigDecimal.ZERO ) == 0 ? "" : stopLoss.toPlainString();
 
             this.tsWriter
-                    .append(readableDateTime).append(",")
+                    .append(readableTime).append(",")
                     .append(close.toPlainString()).append(",")
-                    .append(stopLoss.toPlainString()).append(",")
+                    .append(pChange.toPlainString()).append(",")
+                    .append(csvStopLoss).append(",")
                     .append(state.toShortString())
                     .flush();
             this.logTa();
@@ -523,7 +542,8 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
             addBarToTimeSeries( bar  );
             if ( sufficientBars() )
                 this.taBot.isSatisfied(this.timeSeries);
-            this.logs( bar );
+            BigDecimal pChange = this.getPriceChangePercent();
+            this._log( bar, pChange );
         }
 
         log.exiting( this.getClass().getSimpleName(), "initSeries");
@@ -544,7 +564,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
     private void initTsWriter( File baseDir ) throws IOException {
         this.tsWriter = new PrintWriter( baseDir + "/ts.csv" );
         String taHeader = this.taBot.getNext();
-        String myHeader = "TIME,CLOSE,STOP,POS,";
+        String myHeader = "TIME,CLOSE,PCHANGE,STOP,POS,";
         int n = myHeader.length();
         int l = taHeader.length();
         if ( l > 1 )
