@@ -11,6 +11,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class Config {
@@ -33,7 +37,7 @@ public class Config {
 
     final public static int EXIT_AFTER = -1;
 
-    final public static int MAX_ERR = 30;
+    final public static int MAX_ERR = 50;
 
     final public static int HB_TOLERANCE = 60000;
 
@@ -49,7 +53,7 @@ public class Config {
 
     final public static int GBP_PER_TRADE = 25;
 
-    final public static BigDecimal STOP_LOSS_PERCENT = new BigDecimal("0.95"); //%
+    final public static BigDecimal STOP_LOSS_PERCENT = new BigDecimal("0.95");
 
     final public static CandlestickInterval CANDLESTICK_INTERVAL = CandlestickInterval.ONE_MINUTE;
 
@@ -63,7 +67,7 @@ public class Config {
 
     public static final int LOG_TS_AT = 0;
 
-    final public static int START_AT = 0;
+    final public static int START_AT = 500;
 
     public static final boolean INIT_TS = true;
 
@@ -75,7 +79,16 @@ public class Config {
 
     final public static double takeProfit = 1000; //%
 
-    final public static TestLevel TEST_LEVEL = TestLevel.FAKEORDER;
+    final public static TestLevel TEST_LEVEL = TestLevel.MOCK;
+
+    public static boolean COLLECT_DATA = true;
+
+    public static boolean BACKTEST = false;
+
+    final public static Map<String, String> BACKTEST_DATA_SYMBOL_MAP = new HashMap<>() {{
+       put("STEEMBTC", "data/STEEMBTC/2021-03-22.csv");
+    }};
+
 
     final public static int MAX_BAR_COUNT = 600;
 
@@ -95,9 +108,21 @@ public class Config {
     static {
         BINANCE_API_KEY = System.getenv("BINANCE_API_KEY");
 
+        if (BINANCE_API_KEY == null) {
+            throw new IllegalArgumentException("BINANCE_API_KEY is null");
+        }
+
         BINANCE_SECRET_KEY = System.getenv("BINANCE_SECRET_KEY");
 
+        if (BINANCE_SECRET_KEY == null) {
+            throw new IllegalArgumentException("BINANCE_SECRET_KEY is null");
+        }
+
         QUANDL_API_KEY = System.getenv("QUANDL_API_KEY");
+
+        //if (QUANDL_API_KEY == null) {
+        //    throw new IllegalArgumentException("QUANDL_API_KEY is null");
+        //}
         
         resetTa();
     }

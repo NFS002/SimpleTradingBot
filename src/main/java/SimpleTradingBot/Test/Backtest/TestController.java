@@ -69,13 +69,11 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
 
         initLogger( baseDir );
 
-        if ( TEST_LEVEL == TestLevel.FAKEORDER )
+        if ( TEST_LEVEL == TestLevel.MOCK)
             FakeOrderResponses.register( symbol );
     }
 
     /* Getters & Setters */
-
-
 
     public PositionState getState() {
         return this.buyer.getState();

@@ -9,6 +9,7 @@ import com.binance.api.client.domain.market.CandlestickInterval;
 import com.binance.api.client.domain.market.TickerStatistics;
 import org.ta4j.core.Bar;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
@@ -73,11 +74,10 @@ public class TimeKeeper {
             }
         }
         checkServerTime();
-
     }
 
     /* Check we are in sync with the binance server system time (Internal) */
-    private void checkServerTime() throws STBException{
+    private void checkServerTime() throws STBException {
         log.entering(this.getClass().getSimpleName(), "checkServerTime");
         if ( this.lastTimeDifference > Config.RECV_WINDOW ) {
             log.severe("Server time difference of " + this.lastTimeDifference + " exceeds maximum of " + Config.RECV_WINDOW + ". Checks made: " + nServerChecks);
@@ -90,22 +90,26 @@ public class TimeKeeper {
     }
 
     /* Checks if a given candlestick event is in time with the preceeding time series */
-    public boolean checkEvent( Bar lastBar, CandlestickEvent candlestickEvent)
-        throws STBException{
+    public boolean checkEvent( Bar lastBar, CandlestickEvent candlestickEvent) throws STBException{
 
-        log.entering(this.getClass().getSimpleName(), "checkEvent");
+        this.log.entering(this.getClass().getSimpleName(), "checkEvent");
 
         checkInterval(candlestickEvent);
 
         ZonedDateTime lastBarEndTime = lastBar.getEndTime();
 
-        long nextBarOpenTime = candlestickEvent.getOpenTime();
-        Instant instant = Instant.ofEpochMilli(nextBarOpenTime);
-        ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, Config.ZONE_ID);
-        log.fine("Candlestick open time: " + zonedDateTime + ". Last bar close time: " + lastBarEndTime );
-        long diff = lastBarEndTime.until(zonedDateTime, ChronoUnit.MILLIS);
+        long candlestickTimeMillis = candlestickEvent.getOpenTime();
+        Instant instant = Instant.ofEpochMilli(candlestickTimeMillis);
+        ZonedDateTime candlestickTime = ZonedDateTime.ofInstant(instant, Config.ZONE_ID);
+
+        long diff = lastBarEndTime.until(candlestickTime, ChronoUnit.MILLIS);
+
+        this.log.fine("Candlestick open time: " + candlestickTime + ". Last bar close time: " + lastBarEndTime + ". Difference (ms): " + diff);
+
         boolean check = checkEventTime(diff);
+
         log.exiting(this.getClass().getSimpleName(), "checkEvent");
+
         return check;
 
     }
@@ -114,45 +118,25 @@ public class TimeKeeper {
     /* Checks if a given candlestick event is in time with the preceeding time series (Internal) */
     private boolean checkEventTime(long time_diff) throws STBException {
         log.entering(this.getClass().getSimpleName(), "checkEventTime");
-        long tolerance = Config.INTERVAL_TOLERANCE; /* 5000 Milliseconds */
         int warningPeriod = 3;
         Level level = this.nErr < Config.MAX_ERR - warningPeriod ? Level.FINE :  Level.WARNING;
-        log.fine("Next candlestick time difference: " + time_diff + ", tolerance: " + tolerance );
-        if ( ( time_diff <= tolerance)  && ( time_diff  > 0 ) ) {
-            this.nErr = 0;
+        long intervalMillis = intervalToMillis( Config.CANDLESTICK_INTERVAL );
+        log.log(level,"Next candlestick time difference: " + time_diff + ", tolerance: " + Config.INTERVAL_TOLERANCE + "sequence: " + this.nErr   );
+        if ( (time_diff >= intervalMillis - Config.INTERVAL_TOLERANCE) && (time_diff <= intervalMillis + Config.INTERVAL_TOLERANCE) ) {
             log.exiting(this.getClass().getSimpleName(), "checkEventTime");
+            this.nErr = 0;
             return true;
         }
         else {
-
-            this.log.log(level, "Candlestick event out of time, sequence: " + this.nErr );
             this.log.exiting(this.getClass().getSimpleName(), "checkEventTime");
 
             if ( ++this.nErr >= Config.MAX_ERR) {
                 this.nErr = 0;
                 throw new STBException( 120 );
             }
-            else
-                return false;
+
+            return false;
         }
-    }
-
-    /* Check the time of this event is in line with our system clock */
-    private void checkEventTime( CandlestickEvent candlestickEvent )
-            throws STBException {
-        log.entering(this.getClass().getSimpleName(), "checkEventTime");
-        long eventTime = candlestickEvent.getEventTime();
-        long myTime = System.currentTimeMillis();
-        log.info("Candlestick event time: " + eventTime);
-        log.info("Current system time: " + myTime);
-        long diff = Math.abs(eventTime - myTime);
-        if (diff > Config.RECV_WINDOW) {
-            log.severe("Event time difference of " + lastTimeDifference + " exceeds maximum of " + Config.RECV_WINDOW);
-            throw new STBException( 160 );
-        } else
-            log.info("Event time difference: " + lastTimeDifference);
-
-        log.exiting(this.getClass().getSimpleName(), "checkEventTime");
     }
 
     private void checkInterval(CandlestickEvent candlestickEvent)
@@ -180,8 +164,12 @@ public class TimeKeeper {
         }
     }
 
-    public static long intervalToMillis( CandlestickInterval interval ) {
+    public static Duration intervalToDuration( CandlestickInterval interval ) {
+        long millis = intervalToMillis(interval);
+        return Duration.ofMillis(millis);
+    }
 
+    public static long intervalToMillis( CandlestickInterval interval ) {
         switch ( interval ) {
             case ONE_MINUTE:
                 return (60 * 1000);
@@ -192,6 +180,5 @@ public class TimeKeeper {
             default:
                 return 0;
         }
-
     }
 }

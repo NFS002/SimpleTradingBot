@@ -3,6 +3,7 @@ import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Test.TestLevel;
 import SimpleTradingBot.Test.FakeOrderResponses;
+import SimpleTradingBot.Util.CandleStickEventWriter;
 import org.ta4j.core.num.*;
 import SimpleTradingBot.Models.PositionState;
 import SimpleTradingBot.Util.Handler;
@@ -22,7 +23,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.nio.file.Path;
 import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.*;
@@ -58,6 +62,8 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
 
     private String assetSymbol;
 
+    private CandleStickEventWriter candleStickEventWriter;
+
     private int nWssErr;
 
     /* Constructor */
@@ -74,11 +80,18 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.timeSeries = builder.build();
         this.buyer = new LiveTrader( symbol, baseDir );
         this.handler = new Handler( symbol );
-        this.timeKeeper = new TimeKeeper( symbol );
+
+        if (!BACKTEST)
+            this.timeKeeper = new TimeKeeper( symbol );
+
         this.taBot = new TAbot( symbol );
         this.coolOff = 0;
         this.nWssErr = 0;
         this.paused = false;
+
+        if ( !BACKTEST && COLLECT_DATA ) {
+            initDataCollection();
+        }
 
 
         if ( LOG_TS_AT != -1 )
@@ -87,11 +100,11 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         initLogger( baseDir );
         initSymbol();
 
-        if ( INIT_TS )
+        if ( !BACKTEST && INIT_TS )
             initSeries();
 
 
-        if ( TEST_LEVEL == TestLevel.FAKEORDER )
+        if ( TEST_LEVEL == TestLevel.MOCK )
             FakeOrderResponses.register( this.symbol );
     }
 
@@ -256,9 +269,14 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
                 .withName( this.symbol );
         this.timeSeries = builder.build();
         long now = System.currentTimeMillis();
-        this.timeKeeper.endStream( now );
-        long time = this.timeKeeper.getStreamTime();
-        closeable.close();
+
+        long time = -1;
+
+        if (!BACKTEST) {
+            this.timeKeeper.endStream(now);
+            time = this.timeKeeper.getStreamTime();
+            closeable.close();
+        }
 
         String resetMessage = "\n**********RESET (" + time + ")s **********\n";
 
@@ -279,26 +297,30 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.log.severe( "Preparing to exit controller and interrupt thread. ");
 
         request_deregister();
-
-        try {
-            closeable.close();
-        }
-        catch ( IOException e ) {
-            log.log( Level.SEVERE, "Error closing WSS socket", e);
+        if (!BACKTEST ) {
+            try {
+                closeable.close();
+            } catch (IOException e) {
+                log.log(Level.SEVERE, "Error closing WSS socket", e);
+            }
         }
 
         this.tsWriter.close();
+
         this.log.severe( "Removing filter constraint");
 
         Static.removeConstraint( this.symbol );
 
         StringBuilder msg = new StringBuilder();
         long currentTime = System.currentTimeMillis();
-        this.timeKeeper.endStream( currentTime );
-        long duration = this.timeKeeper.getStreamTime();
-        msg.append("Time Elapsed since open: ").append( duration ).append("s");
-        this.log.severe( msg.toString() );
-        this.log.exiting( this.getClass().getSimpleName(), "exit");
+        if (!BACKTEST) {
+            this.timeKeeper.endStream(currentTime);
+            long duration = this.timeKeeper.getStreamTime();
+            msg.append("Time Elapsed since open: ").append(duration).append("s");
+            this.log.severe(msg.toString());
+            this.log.exiting(this.getClass().getSimpleName(), "exit");
+            this.closeDataCollection();
+        }
         this.closeLogHandlers();
     }
 
@@ -307,10 +329,14 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         try {
             this.log.entering(this.getClass().getSimpleName(), "onResponse");
             this.log.fine("Received candlestick response");
-            Bar lastBar = this.timeSeries.getLastBar();
-            if ( this.timeKeeper.checkEvent( lastBar, candlestick )) {
+
+            boolean inTime = BACKTEST || isResponseInTime(candlestick);
+
+
+            if ( inTime ) {
 
                 this.log.info( "Received candlestick response in time");
+                this.collectData( candlestick );
                 Bar nextBar = candlestickEventToBar( candlestick );
 
                 if ( shouldExit() )
@@ -350,13 +376,19 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         }
 
         catch (Throwable e) {
+            e.printStackTrace();
             this.onFailure(e);
         }
 
         finally {
-            this.log.info("End of candlestick response");
+            this.log.fine("End of candlestick response");
             this.log.exiting(this.getClass().getSimpleName(), "onResponse");
         }
+    }
+
+    private boolean isResponseInTime(CandlestickEvent candlestick) {
+        Bar lastBar = this.timeSeries.getLastBar();
+        return this.timeKeeper.checkEvent( lastBar, candlestick );
     }
 
     private boolean shouldOpen( ) {
@@ -459,7 +491,9 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         log.info("Attempting data stream....");
         long currentTime = System.currentTimeMillis();
         String dateTime = Static.toReadableTime( currentTime );
-        this.timeKeeper.startStream( currentTime );
+        if (!BACKTEST) {
+            this.timeKeeper.startStream(currentTime);
+        }
         BinanceApiWebSocketClient webSocketClient = Static.getFactory().newWebSocketClient();
         this.closeable = webSocketClient.onCandlestickEvent( this.symbol.toLowerCase(), Config.CANDLESTICK_INTERVAL, this);
         log.info("Connected to WSS data stream at " + dateTime + ", " + this.symbol );
@@ -492,28 +526,38 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
 
     private Bar candlestickEventToBar( CandlestickEvent candlestickEvent )  {
         log.entering( this.getClass().getSimpleName(), "candlestickEventToBar" );
-        Instant instant = Instant.ofEpochMilli(candlestickEvent.getCloseTime());
+        long time = candlestickEvent.getOpenTime();
+        Instant instant = Instant.ofEpochMilli(time);
         ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, Config.ZONE_ID);
-        String open = candlestickEvent.getOpen();
-        String high = candlestickEvent.getHigh();
-        String low = candlestickEvent.getLow();
-        String close = candlestickEvent.getClose();
-        String volume = candlestickEvent.getVolume();
+        Duration duration = TimeKeeper.intervalToDuration(CANDLESTICK_INTERVAL);
+        Num open = PrecisionNum.valueOf(candlestickEvent.getOpen());
+        Num high = PrecisionNum.valueOf(candlestickEvent.getHigh());
+        Num low = PrecisionNum.valueOf(candlestickEvent.getLow());
+        Num close = PrecisionNum.valueOf(candlestickEvent.getClose());
+        Num volume = PrecisionNum.valueOf(candlestickEvent.getVolume());
         log.exiting( this.getClass().getSimpleName(), "candlestickEventToBar" );
-        return new BaseBar(zonedDateTime, open, high, low, close, volume, PrecisionNum::valueOf );
+        return new BaseBar(duration, zonedDateTime, open, high, low, close, volume, null );
     }
 
     private Bar candlestickToBar( Candlestick candlestick )  {
         log.entering( this.getClass().getSimpleName(), "candlestickToBar" );
-        Instant instant = Instant.ofEpochMilli(candlestick.getCloseTime());
+        long time = candlestick.getOpenTime();
+        Instant instant = Instant.ofEpochMilli(time);
         ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, Config.ZONE_ID);
-        String open = candlestick.getOpen();
-        String high = candlestick.getHigh();
-        String low = candlestick.getLow();
-        String close = candlestick.getClose();
-        String volume = candlestick.getVolume();
+        Duration duration = TimeKeeper.intervalToDuration(CANDLESTICK_INTERVAL);
+        Num open = PrecisionNum.valueOf(candlestick.getOpen());
+        Num high = PrecisionNum.valueOf(candlestick.getHigh());
+        Num low = PrecisionNum.valueOf(candlestick.getLow());
+        Num close = PrecisionNum.valueOf(candlestick.getClose());
+        Num volume = PrecisionNum.valueOf(candlestick.getVolume());
         log.exiting( this.getClass().getSimpleName(), "candlestickToBar" );
-        return new BaseBar(zonedDateTime, open, high, low, close, volume, PrecisionNum::valueOf );
+        return new BaseBar(duration, zonedDateTime, open, high, low, close, volume, null);
+    }
+
+    private void collectData( CandlestickEvent candlestickEvent ) {
+        if (this.candleStickEventWriter != null) {
+            this.candleStickEventWriter.writeCandlestickEvent(candlestickEvent);
+        }
     }
 
 
@@ -537,9 +581,13 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         BinanceApiRestClient client = Static.getFactory().newRestClient();
         List<Candlestick> candlesticks = client.getCandlestickBars( this.symbol, Config.CANDLESTICK_INTERVAL);
         this.log.info("Initialising timeseries with " + candlesticks.size() + " bars");
-        for (Candlestick candletick:candlesticks) {
+
+        for (Candlestick candletick : candlesticks) {
             Bar bar = candlestickToBar( candletick );
             addBarToTimeSeries( bar  );
+            if ( COLLECT_DATA ) {
+                this.candleStickEventWriter.writeCandlestick( candletick );
+            }
             if ( sufficientBars() )
                 this.taBot.isSatisfied(this.timeSeries);
             BigDecimal pChange = this.getPriceChangePercent();
@@ -585,9 +633,22 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.log.setUseParentHandlers( true );
     }
 
+    private void initDataCollection() throws IOException {
+        File rootPath = new File(Static.DATA_ROOT + this.symbol);
+        String rootPathString = rootPath.toString() + "/";
+        if (!rootPath.exists() && !rootPath.mkdirs()) {
+            this.log.severe("Failed to initialize data collection, File already exists.");
+        }
+        this.candleStickEventWriter = new CandleStickEventWriter(rootPathString);
+    }
+
     private void closeLogHandlers() {
         for (java.util.logging.Handler h : this.log.getHandlers() )
             h.close();
     }
 
+    private void closeDataCollection() {
+        if (this.candleStickEventWriter != null)
+            this.candleStickEventWriter.close();
+    }
 }

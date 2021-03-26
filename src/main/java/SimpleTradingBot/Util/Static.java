@@ -8,9 +8,7 @@ import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.domain.general.ExchangeInfo;
 import com.binance.api.client.domain.general.SymbolInfo;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.time.Duration;
@@ -19,7 +17,9 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -31,6 +31,8 @@ import static SimpleTradingBot.Config.Config.SKIP_SLIPPAGE_TRADES;
 public class Static {
 
     public static String ROOT_OUT;
+
+    public static String DATA_ROOT;
 
     public static BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance( Config.BINANCE_API_KEY, Config.BINANCE_SECRET_KEY);
 
@@ -66,6 +68,7 @@ public class Static {
         Config.print();
     }
 
+
     public static void reset() {
         initRootLoggers();
         initRtWriter();
@@ -85,7 +88,7 @@ public class Static {
 
 
     private static boolean checkRootDir( int n ) {
-        ROOT_OUT = "out-" + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + "-(" + n + ")/";
+        ROOT_OUT = "out/" + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + "-(" + n + ")/";
         File f = new File(ROOT_OUT);
         return f.exists();
     }
@@ -93,18 +96,24 @@ public class Static {
 
     private static void initRootLoggers()  {
         for  ( int n = 1; checkRootDir( n ); n++ );
+        File outDir = new File(ROOT_OUT);
+        if ( !outDir.mkdirs() )
+            throw new STBException( 50 );
+
+        DATA_ROOT = "data/";
+        File dataDir = new File(DATA_ROOT);
+        dataDir.mkdirs();
+
+
         String rootLoggerName = "root";
         log = Logger.getLogger( rootLoggerName );
         log.setUseParentHandlers( false );
-        File dir = new File(ROOT_OUT);
-        if ( !dir.mkdirs() )
-            throw new STBException( 50 );
 
         XMLFormatter formatter = new XMLFormatter();
 
         try {
 
-            FileHandler fileHandler = new FileHandler(dir + "/debug.log");
+            FileHandler fileHandler = new FileHandler(outDir + "/debug.log");
             fileHandler.setLevel( Level.ALL );
             fileHandler.setFormatter( formatter );
             log.addHandler(fileHandler);

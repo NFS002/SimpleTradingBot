@@ -24,6 +24,8 @@ public class STBException extends RuntimeException {
 
             case 50:    return "ROOT_DIR_CREATE";
 
+            case 55:    return "DATA_DIR_CREATE";
+
             case 60:    return "LOG_DIR_CREATE";
 
             case 70:    return "MAX_ORDER_RETRY";

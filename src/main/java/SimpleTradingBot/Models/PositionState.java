@@ -53,9 +53,9 @@ public class PositionState {
     }
 
     public String toShortString() {
-        char t = this.phase.toString().charAt( 0 );
+        char p = this.phase.toString().charAt( 0 );
         char f = this.flags.toString().charAt( 0 );
-        return "[" + t + "|" + f + "]";
+        return "[" + p + "|" + f + "]";
 
     }
 

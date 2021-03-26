@@ -22,4 +22,5 @@ public class Handler implements Thread.UncaughtExceptionHandler {
         if ( !Thread.currentThread().isInterrupted() )
             Thread.currentThread().interrupt();
         System.exit(0);
-    }}
+    }
+}

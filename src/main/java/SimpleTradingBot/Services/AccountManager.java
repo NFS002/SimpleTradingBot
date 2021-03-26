@@ -2,9 +2,7 @@ package SimpleTradingBot.Services;
 
 
 import SimpleTradingBot.Config.Config;
-import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Models.QueueMessage;
-import SimpleTradingBot.Util.Handler;
 import SimpleTradingBot.Util.Static;
 import com.binance.api.client.BinanceApiCallback;
 import com.binance.api.client.BinanceApiRestClient;
@@ -15,10 +13,8 @@ import com.binance.api.client.domain.event.AccountUpdateEvent;
 import com.binance.api.client.domain.event.UserDataUpdateEvent;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,19 +32,18 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
 
     private final Logger log;
 
-    private boolean updated;
-
     private BigDecimal nextQty;
 
     /* Singleton */
     private static AccountManager instance;
 
 
-    private AccountManager(  ) {
+    private AccountManager( ) {
         this.restClient = Static.getFactory().newRestClient();
         this.log = Logger.getLogger( "root.am" );
-        nextQty = null;
-        this.updated = false;
+        this.nextQty = null;
+        this.closeable = null;
+        init();
     }
 
     public static AccountManager getInstance() {
@@ -57,7 +52,7 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
         return instance;
     }
 
-    void init() {
+    private void init() {
         long timeStamp = System.currentTimeMillis();
         this.listenKey = restClient.startUserDataStream();
         BinanceApiWebSocketClient webSocketClient = Static.getFactory().newWebSocketClient();
@@ -66,11 +61,10 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
         AssetBalance b = account.getAssetBalance( quote );
         setBalances( b.getFree() );
         this.closeable = webSocketClient.onUserDataUpdateEvent( this.listenKey, this );
-
     }
 
     public BigDecimal getNextQty() {
-        return nextQty;
+        return this.nextQty;
     }
 
     private void setBalances(String remainingStr) {
@@ -86,18 +80,17 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
             case REAL:
                 nextQty = remaining;
                 break;
-            case FAKEORDER:
+            case MOCK:
                 nextQty = Static.QUOTE_PER_TRADE;
                 break;
         }
 
-        this.updated = true;
         this.log.exiting( this.getClass().getSimpleName(), "setBalances" );
 
     }
 
     @Override
-    public void onResponse(UserDataUpdateEvent event ) {
+    public void onResponse(UserDataUpdateEvent event) {
         this.log.entering( this.getClass().getSimpleName(), "onResponse");
         this.log.info( "Received event" );
         if ( event.getEventType() == ACCOUNT_UPDATE ) {
@@ -119,15 +112,9 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
 
     private void update() {
         this.log.entering( this.getClass().getSimpleName(), "update");
-        if ( this.closeable == null ) {
-            this.log.info("Initialising user data stream ");
-            init();
-        }
-        else {
-            this.log.info("Updating stream with listen key: " + this.listenKey);
-            this.restClient.keepAliveUserDataStream(this.listenKey);
-            this.log.exiting(this.getClass().getSimpleName(), "update");
-        }
+        this.log.info("Updating stream with listen key: " + this.listenKey);
+        this.restClient.keepAliveUserDataStream(this.listenKey);
+        this.log.exiting(this.getClass().getSimpleName(), "update");
     }
 
     private void close() {
@@ -184,14 +171,6 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
         finally {
             this.log.exiting( this.getClass().getSimpleName(), "maintain" );
         }
-    }
-
-    public boolean isUpdated() {
-        return this.updated;
-    }
-
-    public void setOutdated( ) {
-        this.updated = false;
     }
 
     private void shutdown() {

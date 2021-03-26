@@ -164,7 +164,7 @@ public class HeartBeat {
         long interval = TimeKeeper.intervalToMillis( Config.CANDLESTICK_INTERVAL );
         boolean inTime = duration < interval + Config.HB_TOLERANCE;
         if ( !inTime )
-            this.log.severe("Hearbeat failed for symbol: " + symbol + " . With idle duration of " + duration + "(s)");
+            this.log.severe("Hearbeat failed for symbol: " + symbol + ", with idle duration of " + duration + "(s)");
         this.log.exiting( this.getClass().getSimpleName(), "checkHeartbeat");
         return inTime;
     }

@@ -15,15 +15,15 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 
-import static SimpleTradingBot.Config.Config.MAX_TIME_SYNC;
-import static SimpleTradingBot.Config.Config.HEART_BEAT_INTERVAL;
-import static SimpleTradingBot.Config.Config.AM_INTERVAL;
-import static SimpleTradingBot.Config.Config.MAX_SYMBOLS;
+import static SimpleTradingBot.Config.Config.*;
+import static SimpleTradingBot.Config.Config.COLLECT_DATA;
 
 public class BinanceLiveSchedule {
 
 
     public static void main(String[] args) throws Exception {
+
+        BACKTEST = false;
 
         Logger log = Logger.getLogger( "root" );
         log.entering("Schedule","main");
@@ -60,6 +60,9 @@ public class BinanceLiveSchedule {
         int nSymbols = statisticsList.size();
         log.info( "Succesfully received " + nSymbols + " symbols");
 
+        log.info( "Loading supported coins...");
+        SupportedCoins.loadSupportedCoins();
+
         SymbolPredicate symbolPredicate = new SymbolPredicate( exchangeInfo );
         log.info( "Filtering symbols based on exchange information, under the following predicate: " + symbolPredicate);
         statisticsList.removeIf(symbolPredicate);
@@ -83,8 +86,8 @@ public class BinanceLiveSchedule {
 
         for ( TickerStatistics statistics : statisticsList ) {
             String symbol = statistics.getSymbol();
-            log.info( "Beginning live stream of symbol" + symbol);
-            LiveController controller = new LiveController( statistics.getSymbol() );
+            log.info( "Beginning live stream of symbol: " + symbol);
+            LiveController controller = new LiveController( symbol );
             controller.liveStream();
             heartBeat.register( controller );
         }

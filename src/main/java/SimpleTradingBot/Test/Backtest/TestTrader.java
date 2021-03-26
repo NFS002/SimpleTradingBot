@@ -371,7 +371,6 @@ public class TestTrader {
     }
 
     private synchronized NewOrderResponse trySubmit(NewOrder order, BigDecimal close )  {
-        log.entering(this.getClass().getSimpleName(), "submit");
         return fakeNewResponse( order, close.toPlainString() );
     }
 

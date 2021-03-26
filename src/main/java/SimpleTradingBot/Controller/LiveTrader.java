@@ -139,7 +139,7 @@ public class LiveTrader {
         String dateTime = Static.toReadableTime( currTimeMillis );
         /* Get executed qty, or just use all our free balance */
 
-        String qty = getSellQty();
+        String qty = this.getSellQty();
         NewOrder sellOrder = marketSell( symbol, qty );
         NewOrderResponse sellOrderResponse = trySubmit( sellOrder, close );
         if ( sellOrderResponse == null ) {
@@ -164,7 +164,7 @@ public class LiveTrader {
             case REAL:
                 Order buyOrder = currentBuyPosition.getLastUpdate();
                 return buyOrder.getExecutedQty();
-            case FAKEORDER:
+            case MOCK:
                 default:
                 NewOrder order = currentBuyPosition.getOriginalOrder();
                 return order.getQuantity();
@@ -243,9 +243,12 @@ public class LiveTrader {
                 case PENDING_CANCEL:
                     flags = UPDATE;
                     break;
+                case FILLED:
                 case CANCELED:
                     flags = NONE;
                     break;
+                case EXPIRED:
+                case REJECTED:
                 default:
                     flags = CANCEL;
             }
@@ -260,7 +263,6 @@ public class LiveTrader {
         int nCycles = this.cycles.size();
         if ( nCycles > 0 ) {
             BigDecimal close = (BigDecimal) bar.getClosePrice().getDelegate();
-            this.updateStopLoss(close);
             this.updateStopLoss(close);
             this.incTicks( nCycles );
             if (this.state.getFlags() != NONE) {
@@ -298,7 +300,7 @@ public class LiveTrader {
     }
 
     private void update( OrderSide side, BigDecimal close ) throws STBException {
-        this.log.entering(this.getClass().getSimpleName(), "update",side);
+        this.log.entering(this.getClass().getSimpleName(), "update", side);
         int nCycles = this.cycles.size();
         Cycle lastCycle = this.cycles.get( nCycles - 1 );
         Position position = ( side == OrderSide.BUY ) ? lastCycle.getBuyPosition() : lastCycle.getSellPosition();
@@ -321,7 +323,7 @@ public class LiveTrader {
                 _update( position, originalResponse, close );
                 break;
         }
-        log.exiting( this.getClass().getSimpleName(), "update", side );
+        this.log.exiting( this.getClass().getSimpleName(), "update", side );
     }
 
     private void revertCycle( int i ) {
@@ -372,7 +374,7 @@ public class LiveTrader {
             break;
 
             default:
-            case FAKEORDER: order = getNextUpdate( response, close );
+            case MOCK: order = getNextUpdate( response, close );
         }
         this.log.info( "Got update: " + order );
         position.setUpdatedOrder( order );
@@ -397,7 +399,7 @@ public class LiveTrader {
         this.log.info( "Cancelling order: " + cancelOrderRequest );
         CancelOrderResponse response = null;
         switch ( Config.TEST_LEVEL ) {
-            case FAKEORDER:
+            case MOCK:
                 response = fakeCancelledResponse(cancelOrderRequest);
                 position.cancelFakeOrder( response );
                 break;
@@ -417,7 +419,7 @@ public class LiveTrader {
                 case REAL:
                     response = client.newOrder(order);
                     break;
-                case FAKEORDER:
+                case MOCK:
                 default:
                      client.newOrderTest( order );
                      response = fakeNewResponse( order, close.toPlainString() );

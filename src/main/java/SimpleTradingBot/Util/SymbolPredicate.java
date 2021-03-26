@@ -7,7 +7,6 @@ import com.binance.api.client.domain.market.TickerStatistics;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.util.ArrayList;
 import java.util.List;
 
 import static SimpleTradingBot.Util.Static.getQuoteFromSymbol;

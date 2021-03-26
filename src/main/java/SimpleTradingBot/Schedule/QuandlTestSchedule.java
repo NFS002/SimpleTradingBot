@@ -85,7 +85,7 @@ public class QuandlTestSchedule {
         return symbol;
     }
 
-    private static List<String> getAllLines(String url ) throws IOException {
+    private static List<String> getAllLines( String url ) throws IOException {
         CloseableHttpClient client = HttpClients.createDefault();
         HttpGet get = new HttpGet( url );
         CloseableHttpResponse response = client.execute(get);

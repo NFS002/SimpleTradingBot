@@ -31,13 +31,6 @@ public class QuandlFeeder implements Feeder {
     }
 
     @Override
-    public void readHeader(String header) {
-        System.out.println( header );
-        if ( header.equals("code,message"))
-            throw new IllegalArgumentException("Invalid header");
-    }
-
-    @Override
     public void feed(String line, BinanceApiCallback<CandlestickEvent> callback) {
         try {
             String[] split = line.split(",");
