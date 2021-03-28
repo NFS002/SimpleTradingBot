@@ -105,6 +105,8 @@ public class Config {
 
     final public static boolean WEB_NOTIFICATIONS = true;
 
+    final public static int WEB_NOTIFICATION_UPDATES = 1000;
+
     final public static String BINANCE_API_KEY = System.getenv("BINANCE_API_KEY");
 
     final public static String BINANCE_SECRET_KEY = System.getenv("BINANCE_SECRET_KEY");

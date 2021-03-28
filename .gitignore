@@ -3,4 +3,5 @@
 *.iml
 target/*
 .DS_Store
-out-*
+out
+data

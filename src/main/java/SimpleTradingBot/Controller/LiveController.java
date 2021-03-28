@@ -4,7 +4,7 @@ import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Test.TestLevel;
 import SimpleTradingBot.Test.FakeOrderResponses;
 import SimpleTradingBot.Util.CandleStickEventWriter;
-import SimpleTradingBot.Util.WebNotifications;
+import SimpleTradingBot.Config.WebNotifications;
 import org.ta4j.core.num.*;
 import SimpleTradingBot.Models.PositionState;
 import SimpleTradingBot.Util.Handler;
@@ -371,8 +371,9 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
                     /* Update local state */
                     this.buyer.findAndSetState( );
 
-                    /* Log */
+                    /* Log and send notifications */
                     this.log( nextBar, pChange );
+                    WebNotifications.controllerUpdate(symbol, this.timeSeries.getBarCount());
                 }
             }
         }
@@ -492,6 +493,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         BinanceApiWebSocketClient webSocketClient = Static.getFactory().newWebSocketClient();
         this.closeable = webSocketClient.onCandlestickEvent( this.symbol.toLowerCase(), Config.CANDLESTICK_INTERVAL, this);
         log.info("Connected to WSS data stream at " + dateTime + ", " + this.symbol );
+        WebNotifications.controllerStream(this.symbol);
         this.log.exiting( this.getClass().getSimpleName(), "liveStream" );
     }
 

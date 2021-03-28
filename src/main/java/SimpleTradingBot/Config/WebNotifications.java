@@ -1,4 +1,4 @@
-package SimpleTradingBot.Util;
+package SimpleTradingBot.Config;
 
 import SimpleTradingBot.Config.Config;
 import com.rollbar.notifier.Rollbar;
@@ -6,7 +6,9 @@ import com.rollbar.notifier.Rollbar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static SimpleTradingBot.Config.Config.WEB_NOTIFICATIONS;
 import static com.rollbar.notifier.config.ConfigBuilder.withAccessToken;
+import static SimpleTradingBot.Config.Config.WEB_NOTIFICATION_UPDATES;
 
 public class WebNotifications {
 
@@ -47,6 +49,23 @@ public class WebNotifications {
     public static void controllerExit(String symbol) {
         if (rollbar != null) {
             rollbar.critical(symbol + ": Preparing to exit controller and interrupt thread. ");
+        }
+    }
+
+    public static void controllerUpdate(String symbol, int ticks) {
+        if (rollbar != null) {
+            if (WEB_NOTIFICATION_UPDATES > 0 && ticks % WEB_NOTIFICATION_UPDATES == 0) {
+                rollbar.info(symbol + ": Controller has processed" + ticks + " events");
+            }
+        }
+    }
+
+    public static void controllerStream(String symbol) {
+        if (rollbar != null) {
+            rollbar.info("Beginning stream: "
+                    + symbol
+                    + ", with regular updates set to "
+                    + WEB_NOTIFICATION_UPDATES);
         }
     }
 

@@ -7,7 +7,7 @@ import SimpleTradingBot.Controller.TimeKeeper;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Models.QueueMessage;
 import SimpleTradingBot.Util.Static;
-import SimpleTradingBot.Util.WebNotifications;
+import SimpleTradingBot.Config.WebNotifications;
 import org.ta4j.core.TimeSeries;
 
 import java.time.ZonedDateTime;
