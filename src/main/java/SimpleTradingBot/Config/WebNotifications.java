@@ -1,8 +1,10 @@
 package SimpleTradingBot.Config;
 
 import SimpleTradingBot.Config.Config;
+import SimpleTradingBot.Models.Cycle;
 import com.rollbar.notifier.Rollbar;
 
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,6 +51,14 @@ public class WebNotifications {
     public static void controllerExit(String symbol) {
         if (rollbar != null) {
             rollbar.critical(symbol + ": Preparing to exit controller and interrupt thread. ");
+        }
+    }
+
+    public static void cycleCompleted(Cycle cycle) {
+        if (rollbar != null) {
+            HashMap<String, Object> params = cycle.toMap();
+            String symbol = params.get("symbol").toString();
+            rollbar.info("RT complete for symbol: " + symbol, params);
         }
     }
 

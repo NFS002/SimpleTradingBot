@@ -1,6 +1,7 @@
 package SimpleTradingBot.Controller;
 
 import SimpleTradingBot.Config.Config;
+import SimpleTradingBot.Config.WebNotifications;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Models.Cycle;
 import SimpleTradingBot.Models.FilterConstraints;
@@ -194,6 +195,7 @@ public class LiveTrader {
                             lastCycle.finalise();
                             Static.logRt(lastCycle);
                             this.logRt( lastCycle );
+                            WebNotifications.cycleCompleted(lastCycle);
                         }
                         phase = CLEAR;
                     }
@@ -208,6 +210,7 @@ public class LiveTrader {
                         lastCycle.finalise();
                         Static.logRt(lastCycle);
                         this.logRt( lastCycle );
+                        WebNotifications.cycleCompleted(lastCycle);
                     }
                     phase = CLEAR;
                 }

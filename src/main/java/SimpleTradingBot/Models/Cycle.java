@@ -10,6 +10,7 @@ import com.binance.api.client.domain.account.Order;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.HashMap;
 
 import static SimpleTradingBot.Util.Static.toReadableDateTime;
 import static SimpleTradingBot.Util.Static.toReadableDuration;
@@ -28,8 +29,6 @@ public class Cycle {
     public static double n_neutral_trades = 0;
 
     public static double win_loss_pc = 0;
-
-    public static double sharpe_ratio = 0;
 
     private final String symbol;
 
@@ -257,6 +256,24 @@ public class Cycle {
             total = total.add( price, MathContext.DECIMAL64 );
         }
         return total.divide( BigDecimal.valueOf( size ), MathContext.DECIMAL64 );
+    }
+
+    public HashMap<String, Object> toMap() {
+        if (!this.isFinalised())
+            this.finalise();
+
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("symbol", this.symbol);
+        params.put("ticks", this.n_ticks);
+        params.put("gain", this.gain);
+        params.put("net_gain", netGain);
+        params.put("exc_quantities", this.exSellQty + "/" + this.exBuyQty);
+        params.put("buy_updates", this.nBuyUpdates);
+        params.put("sell_updates", this.nSellUpdates);
+        params.put("total_cycles", n_winning_trades + n_losing_trades + n_neutral_trades);
+        params.put("win_loss_pc", win_loss_pc);
+
+        return params;
     }
 
     public String toCsv() {
