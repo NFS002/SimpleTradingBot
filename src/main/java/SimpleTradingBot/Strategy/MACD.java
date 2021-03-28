@@ -1,4 +1,4 @@
-package SimpleTradingBot.Rules;
+package SimpleTradingBot.Strategy;
 
 import org.ta4j.core.Rule;
 import org.ta4j.core.TimeSeries;
@@ -10,7 +10,7 @@ import org.ta4j.core.trading.rules.OverIndicatorRule;
 import java.math.BigDecimal;
 
 
-public class MACD implements IRule {
+public class MACD implements IStrategy {
 
 
     private final int longPeriod;

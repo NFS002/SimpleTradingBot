@@ -1,13 +1,10 @@
 package SimpleTradingBot.Controller;
 
 import SimpleTradingBot.Config.Config;
-import SimpleTradingBot.Rules.IRule;
-import SimpleTradingBot.Util.Static;
-import com.binance.api.client.domain.market.TickerStatistics;
+import SimpleTradingBot.Strategy.IStrategy;
 import org.ta4j.core.Rule;
 import org.ta4j.core.TimeSeries;
 
-import java.io.PrintWriter;
 import java.util.logging.Logger;
 
 
@@ -17,8 +14,6 @@ public class TAbot {
 
     private Logger log;
 
-    private int nFields;
-
     private String next;
 
     public String getNext() {
@@ -27,27 +22,24 @@ public class TAbot {
         return row;
     }
 
-    public int getnFields() {
-        return nFields;
-    }
-
     public TAbot( String symbol ) {
         String loggerName = this.getClass().getSimpleName();
         this.symbol = symbol;
         this.log = Logger.getLogger( "root." + symbol + "." + loggerName );
-        setHeader();
+        this.next = getHeader();
     }
 
-    private void setHeader() {
+    private String getHeader() {
         StringBuilder builder = new StringBuilder( );
-        for ( IRule rule: Config.TA_RULES )
+        int len = Config.TA_STRATEGIES.length;
+        for (int i = 0; i < len; i++ ) {
+            IStrategy rule = Config.TA_STRATEGIES[i];
             builder.append( rule.getNext() );
-        this.next = builder.toString();
-        if ( this.next.trim().isEmpty() )
-            this.nFields = 0;
-        else
-            this.nFields = this.next.split( "," ).length;
-
+            if (i < len - 1 ) {
+                builder.append(",");
+            }
+        }
+        return builder.toString();
     }
 
 
@@ -57,10 +49,16 @@ public class TAbot {
         boolean allSatisfied = true;
         int index = series.getEndIndex();
         StringBuilder builder = new StringBuilder();
-
-        for ( IRule r: Config.TA_RULES ) {
+        int len = Config.TA_STRATEGIES.length;
+        for ( int i = 0; i < len; i++ ) {
+            IStrategy r = Config.TA_STRATEGIES[i];
             Rule rule = r.apply( series, index );
             builder.append( r.getNext() );
+
+            if (i < len - 1 ) {
+                builder.append(",");
+            }
+
             boolean ruleSatisfied = rule.isSatisfied( index );
             allSatisfied = allSatisfied && ruleSatisfied;
             this.log.info( "Rule " + r.getName() + " applied, satisfied: " + ruleSatisfied );

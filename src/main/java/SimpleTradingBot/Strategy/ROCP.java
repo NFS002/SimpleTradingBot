@@ -1,4 +1,4 @@
-package SimpleTradingBot.Rules;
+package SimpleTradingBot.Strategy;
 
 import SimpleTradingBot.Util.LimitedList;
 import org.ta4j.core.Rule;
@@ -8,9 +8,9 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.trading.rules.OverIndicatorRule;
 
 import java.math.BigDecimal;
-import static SimpleTradingBot.Rules.addons.Common.pDiff;
+import static SimpleTradingBot.Strategy.Rule.Common.pDiff;
 
-public class ROCP implements IRule  {
+public class ROCP implements IStrategy {
 
     private String next;
 

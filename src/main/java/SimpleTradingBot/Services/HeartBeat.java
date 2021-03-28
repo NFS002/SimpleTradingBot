@@ -7,7 +7,7 @@ import SimpleTradingBot.Controller.TimeKeeper;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Models.QueueMessage;
 import SimpleTradingBot.Util.Static;
-import com.binance.api.client.domain.market.TickerStatistics;
+import SimpleTradingBot.Util.WebNotifications;
 import org.ta4j.core.TimeSeries;
 
 import java.time.ZonedDateTime;
@@ -21,9 +21,9 @@ import static SimpleTradingBot.Util.Static.requestExit;
 
 public class HeartBeat {
 
-    private Logger log;
+    private final Logger log;
 
-    private ArrayList<LiveController> controllers;
+    private final ArrayList<LiveController> controllers;
 
     /* Singleton pattern */
     private static HeartBeat instance;
@@ -127,8 +127,9 @@ public class HeartBeat {
             Thread.sleep(3000 );
         }
         catch ( InterruptedException e ) {
-            log.log( Level.SEVERE, "Shutdown failed", e);
+            log.log( Level.SEVERE, "Exception thrown while shutting down heartbeat: ", e);
         }
+        WebNotifications.heartbeatExit(true);
         System.exit(0);
     }
 
@@ -163,8 +164,10 @@ public class HeartBeat {
         long duration = endTime.until( now, ChronoUnit.MILLIS );
         long interval = TimeKeeper.intervalToMillis( Config.CANDLESTICK_INTERVAL );
         boolean inTime = duration < interval + Config.HB_TOLERANCE;
-        if ( !inTime )
-            this.log.severe("Hearbeat failed for symbol: " + symbol + ", with idle duration of " + duration + "(s)");
+        if ( !inTime ) {
+            WebNotifications.heartbeatFailure(symbol, duration);
+            this.log.severe("Hearbeat failed for symbol: " + symbol + ", with idle duration of " + (duration/1000) + "(s)");
+        }
         this.log.exiting( this.getClass().getSimpleName(), "checkHeartbeat");
         return inTime;
     }

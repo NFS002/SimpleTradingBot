@@ -1,11 +1,9 @@
-package SimpleTradingBot.Rules;
+package SimpleTradingBot.Strategy;
 
 import org.ta4j.core.Rule;
 import org.ta4j.core.TimeSeries;
 
-import java.net.URISyntaxException;
-
-public interface IRule {
+public interface IStrategy {
 
     Rule apply( TimeSeries timeSeries, int index );
 

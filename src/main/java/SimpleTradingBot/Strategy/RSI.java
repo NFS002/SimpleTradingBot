@@ -1,4 +1,4 @@
-package SimpleTradingBot.Rules;
+package SimpleTradingBot.Strategy;
 
 import org.ta4j.core.Rule;
 import org.ta4j.core.TimeSeries;
@@ -8,7 +8,7 @@ import org.ta4j.core.trading.rules.UnderIndicatorRule;
 
 import java.math.BigDecimal;
 
-public class RSI implements IRule {
+public class RSI implements IStrategy {
 
     private final int overBought;
 

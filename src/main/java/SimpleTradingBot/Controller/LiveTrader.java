@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -454,8 +455,9 @@ public class LiveTrader {
         }
     }
 
-    public void logIfSlippage( BigDecimal fChange ) {
-        if ( fChange.compareTo( STOP_LOSS_PERCENT ) < 0 ) {
+    public void logIfSlippage( BigDecimal pChange ) {
+        BigDecimal maxChange = BigDecimal.ONE.subtract( STOP_LOSS_PERCENT, MathContext.DECIMAL64);
+        if ( pChange.compareTo( maxChange ) > 0 ) {
             int nCycles = this.cycles.size();
             if ( nCycles > 0 && this.state.isBuyOrHold() ) {
                 Cycle lastCycle = this.cycles.get( nCycles - 1 );

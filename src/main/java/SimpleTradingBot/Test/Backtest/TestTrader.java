@@ -385,8 +385,9 @@ public class TestTrader {
         }
     }
 
-    public void logIfSlippage( BigDecimal fChange ) {
-        if ( fChange.compareTo( STOP_LOSS_PERCENT ) < 0 ) {
+    public void logIfSlippage( BigDecimal pChange ) {
+        BigDecimal maxChange = BigDecimal.ONE.subtract( STOP_LOSS_PERCENT, MathContext.DECIMAL64);
+        if ( pChange.compareTo( maxChange ) > 0 ) {
             int nCycles = this.cycles.size();
             if ( nCycles > 0 && this.state.isBuyOrHold() ) {
                 Cycle lastCycle = this.cycles.get( nCycles - 1 );

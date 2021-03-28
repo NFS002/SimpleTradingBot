@@ -1,9 +1,10 @@
 package SimpleTradingBot.Config;
 import SimpleTradingBot.Exception.STBException;
-import SimpleTradingBot.Rules.*;
+import SimpleTradingBot.Strategy.*;
 import SimpleTradingBot.Util.Static;
 import SimpleTradingBot.Test.TestLevel;
 import com.binance.api.client.constant.BinanceApiConstants;
+import com.binance.api.client.domain.OrderStatus;
 import com.binance.api.client.domain.market.CandlestickInterval;
 
 import java.io.File;
@@ -11,9 +12,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
@@ -49,11 +48,14 @@ public class Config {
 
     final public static int MAX_TIME_SYNC = 1000;
 
-    public static IRule[] TA_RULES;
+    public static IStrategy[] TA_STRATEGIES = new IStrategy[] {
+            new SMACross(14, 50, 3 ),
+            new ROCP( 1, 0 )
+    };
 
     final public static int GBP_PER_TRADE = 25;
 
-    final public static BigDecimal STOP_LOSS_PERCENT = new BigDecimal("0.95");
+    final public static BigDecimal STOP_LOSS_PERCENT = BigDecimal.valueOf(0.95);
 
     final public static CandlestickInterval CANDLESTICK_INTERVAL = CandlestickInterval.ONE_MINUTE;
 
@@ -61,7 +63,7 @@ public class Config {
 
     public static final int MAX_WSS_ERR = 5;
 
-    public static final int MAX_SYMBOLS = 1;
+    public static final int MAX_SYMBOLS = 5;
 
     public static final boolean SHOULD_LOG_TA = true;
 
@@ -81,6 +83,10 @@ public class Config {
 
     final public static TestLevel TEST_LEVEL = TestLevel.MOCK;
 
+    final public static HashMap<String, OrderStatus[]> MOCK_ORDER_UPDATE_PATTERN = new HashMap<>() {{
+        put( "*", new OrderStatus[]{ OrderStatus.FILLED });
+    }};
+
     public static boolean COLLECT_DATA = true;
 
     public static boolean BACKTEST = false;
@@ -89,6 +95,7 @@ public class Config {
        put("STEEMBTC", "data/STEEMBTC/2021-03-22.csv");
     }};
 
+    final public static long MOCK_ORDER_ID = 12345L;
 
     final public static int MAX_BAR_COUNT = 600;
 
@@ -96,43 +103,26 @@ public class Config {
 
     final public static boolean SKIP_SLIPPAGE_TRADES = true;
 
-    final public static String QUANDL_BASE_URL = "https://www.quandl.com/api/v3/datasets/EOD/";
+    final public static boolean WEB_NOTIFICATIONS = true;
 
-    final public static String BINANCE_API_KEY;
+    final public static String BINANCE_API_KEY = System.getenv("BINANCE_API_KEY");
 
-    final public static String BINANCE_SECRET_KEY;
+    final public static String BINANCE_SECRET_KEY = System.getenv("BINANCE_SECRET_KEY");
 
-    final public static String QUANDL_API_KEY;
+    final public static String ROLLBAR_API_KEY = System.getenv("ROLLBAR_API_KEY");
 
 
     static {
-        BINANCE_API_KEY = System.getenv("BINANCE_API_KEY");
 
         if (BINANCE_API_KEY == null) {
             throw new IllegalArgumentException("BINANCE_API_KEY is null");
         }
 
-        BINANCE_SECRET_KEY = System.getenv("BINANCE_SECRET_KEY");
-
         if (BINANCE_SECRET_KEY == null) {
             throw new IllegalArgumentException("BINANCE_SECRET_KEY is null");
         }
-
-        QUANDL_API_KEY = System.getenv("QUANDL_API_KEY");
-
-        //if (QUANDL_API_KEY == null) {
-        //    throw new IllegalArgumentException("QUANDL_API_KEY is null");
-        //}
-        
-        resetTa();
     }
 
-    public static void resetTa() {
-        TA_RULES = new IRule[] {
-                new SMACross(14, 50, 3 ),
-                new ROCP( 1, 0 )
-        };
-    }
 
     public static void print() {
         try {

@@ -7,6 +7,7 @@ import SimpleTradingBot.Models.QueueMessage;
 import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.domain.general.ExchangeInfo;
 import com.binance.api.client.domain.general.SymbolInfo;
+import com.rollbar.notifier.Rollbar;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -17,9 +18,7 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -69,12 +68,6 @@ public class Static {
     }
 
 
-    public static void reset() {
-        initRootLoggers();
-        initRtWriter();
-        Config.resetTa();
-        Config.print();
-    }
 
     private static void initRtWriter() {
         try {

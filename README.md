@@ -27,18 +27,20 @@ The same project but uses an asynchronous http client.
 ## (some of the) Dependencies
 ```xml
 <dependencies>
+    
         <dependency>
             <!-- Binance API java client -->
             <groupId>com.github.binance-exchange</groupId>
             <artifactId>binance-java-api</artifactId>
             <version>master-SNAPSHOT</version>
         </dependency>
+    
         <dependency>
-            TA_RULES
             <groupId>org.ta4j</groupId>
             <artifactId>ta4j-core</artifactId>
             <version>0.11</version>
         </dependency>
+    
 </dependencies>
 ```
 

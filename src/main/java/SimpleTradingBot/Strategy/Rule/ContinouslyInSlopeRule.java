@@ -1,4 +1,4 @@
-package SimpleTradingBot.Rules.addons;
+package SimpleTradingBot.Strategy.Rule;
 
 import org.ta4j.core.Indicator;
 import org.ta4j.core.Rule;
@@ -6,7 +6,7 @@ import org.ta4j.core.TradingRecord;
 import org.ta4j.core.num.Num;
 
 import java.math.BigDecimal;
-import static SimpleTradingBot.Rules.addons.Common.pDiff;
+import static SimpleTradingBot.Strategy.Rule.Common.pDiff;
 
 public class ContinouslyInSlopeRule implements Rule {
 

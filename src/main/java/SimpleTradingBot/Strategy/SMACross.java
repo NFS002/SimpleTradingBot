@@ -1,6 +1,6 @@
-package SimpleTradingBot.Rules;
+package SimpleTradingBot.Strategy;
 
-import SimpleTradingBot.Rules.addons.SMACrossConfirm;
+import SimpleTradingBot.Strategy.Rule.SMACrossConfirm;
 import org.ta4j.core.Rule;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.SMAIndicator;
@@ -8,10 +8,10 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 
 import java.math.BigDecimal;
 
-import static SimpleTradingBot.Rules.addons.SMACrossConfirm.confirm;
+import static SimpleTradingBot.Strategy.Rule.SMACrossConfirm.confirm;
 
 
-public class SMACross implements IRule {
+public class SMACross implements IStrategy {
 
     private int confirmPeriod;
 

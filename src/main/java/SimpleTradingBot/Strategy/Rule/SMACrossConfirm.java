@@ -1,4 +1,4 @@
-package SimpleTradingBot.Rules.addons;
+package SimpleTradingBot.Strategy.Rule;
 
 import org.ta4j.core.indicators.SMAIndicator;
 

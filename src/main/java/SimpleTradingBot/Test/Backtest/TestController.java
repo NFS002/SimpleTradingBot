@@ -147,14 +147,6 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
 
     private void logTa() {
         String next = this.taBot.getNext();
-        int l = next.trim().length();
-        int n = this.taBot.getnFields();
-
-        if ( l > 1 )
-            next = "," + next.substring( 0, l - 1 );
-        else if ( n > 0 )
-            next = new String(new char[n]).replace("\0", ",");
-
         this.tsWriter.append( next ).append("\n").flush();
     }
 
@@ -203,18 +195,18 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
 
     private BigDecimal getPriceChangePercent() {
         int endIndex = this.timeSeries.getEndIndex();
-        if ( endIndex > 1 ) {
+        if ( endIndex >= 1 ) {
             Bar lastBar = this.timeSeries.getBar( endIndex );
             BigDecimal lastPrice = (BigDecimal) lastBar.getClosePrice().getDelegate();
             Bar secondLastBar = this.timeSeries.getBar(endIndex - 1 );
             BigDecimal secondLastPrice = (BigDecimal) secondLastBar.getClosePrice().getDelegate();
-            BigDecimal fChange = lastPrice.divide( secondLastPrice, MathContext.DECIMAL64 );
-            this.buyer.logIfSlippage( fChange );
-            return BigDecimal.ONE.subtract(fChange, MathContext.DECIMAL64).multiply( BigDecimal.valueOf( -100 ), MathContext.DECIMAL64 );
+            BigDecimal pChange = (lastPrice.subtract(secondLastPrice, MathContext.DECIMAL64))
+                    .divide(secondLastPrice, MathContext.DECIMAL64);
+            this.buyer.logIfSlippage( pChange );
+            return pChange.multiply(BigDecimal.valueOf(100), MathContext.DECIMAL64);
         }
         else return BigDecimal.ZERO;
     }
-
 
     private void _log(Bar bar, BigDecimal pChange ) {
         this.log.entering( this.getClass().getName(), "logTs");

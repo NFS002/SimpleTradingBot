@@ -1,13 +1,13 @@
-package SimpleTradingBot.Rules;
+package SimpleTradingBot.Strategy;
 
-import SimpleTradingBot.Rules.addons.ContinouslyInSlopeRule;
+import SimpleTradingBot.Strategy.Rule.ContinouslyInSlopeRule;
 import org.ta4j.core.Rule;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.volume.OnBalanceVolumeIndicator;
 
 import java.math.BigDecimal;
 
-public class OBVSlope implements IRule {
+public class OBVSlope implements IStrategy {
 
     private final BigDecimal minSlope;
 
