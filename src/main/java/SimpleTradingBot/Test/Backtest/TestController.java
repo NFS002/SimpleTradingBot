@@ -284,7 +284,7 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
     private void initLogger( File baseDir ) throws IOException {
         this.log = Logger.getLogger("root." + this.symbol );
         this.log.setLevel( Level.ALL );
-        FileHandler handler = new FileHandler( baseDir + "/debug.log" );
+        FileHandler handler = new FileHandler( baseDir + "/debug.json.log" );
         handler.setFormatter( new XMLFormatter() );
         this.log.addHandler( handler );
         this.log.setUseParentHandlers( true );

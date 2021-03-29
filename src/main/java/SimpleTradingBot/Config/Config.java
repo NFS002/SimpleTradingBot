@@ -1,6 +1,7 @@
 package SimpleTradingBot.Config;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Strategy.*;
+import SimpleTradingBot.Util.Logging.JSONFormatter;
 import SimpleTradingBot.Util.Static;
 import SimpleTradingBot.Test.TestLevel;
 import com.binance.api.client.constant.BinanceApiConstants;
@@ -14,9 +15,12 @@ import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Formatter;
 
 
 public class Config {
+
+    final public static Formatter LOG_FORMATTER = new JSONFormatter();
 
     final public static int MAX_ORDER_UPDATES = 10;
 
@@ -103,9 +107,11 @@ public class Config {
 
     final public static boolean SKIP_SLIPPAGE_TRADES = true;
 
-    final public static boolean WEB_NOTIFICATIONS = true;
+    final public static boolean WEB_NOTIFICATIONS = false;
 
     final public static int WEB_NOTIFICATION_UPDATES = 1000;
+
+    final public static String STB_ENV = System.getenv("STB_ENV");
 
     final public static String BINANCE_API_KEY = System.getenv("BINANCE_API_KEY");
 
@@ -122,6 +128,10 @@ public class Config {
 
         if (BINANCE_SECRET_KEY == null) {
             throw new IllegalArgumentException("BINANCE_SECRET_KEY is null");
+        }
+
+        if (STB_ENV == null) {
+            throw new IllegalArgumentException("STB_ENV is null");
         }
     }
 

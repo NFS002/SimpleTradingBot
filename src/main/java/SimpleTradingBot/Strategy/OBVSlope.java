@@ -33,7 +33,7 @@ public class OBVSlope implements IStrategy {
         String name = getName();
         return name + "-" + this.minSlope +
                 "-" + this.maxSlope + "-"
-                + this.minCount + ",";
+                + this.minCount;
     }
 
 
@@ -41,7 +41,7 @@ public class OBVSlope implements IStrategy {
     public Rule apply(TimeSeries timeSeries, int index) {
         OnBalanceVolumeIndicator obvIndicator = new OnBalanceVolumeIndicator( timeSeries );
         BigDecimal v = (BigDecimal) obvIndicator.getValue( index ).getDelegate();
-        this.next = v.toPlainString() + ",";
+        this.next = v.toPlainString();
         return new ContinouslyInSlopeRule( obvIndicator, this.minSlope, this.maxSlope, this.minCount );
     }
 

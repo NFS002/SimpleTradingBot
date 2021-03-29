@@ -44,10 +44,10 @@ public class SMACross implements IStrategy {
         StringBuilder builder = new StringBuilder();
         String name = getName();
         for ( int p : this.smaPeriods)
-            builder.append( name ).append("-").append( p ).append(",");
+            builder.append( name ).append("-").append( p );
         if ( this.confirmPeriod > 0 ) {
             builder.append(SMACrossConfirm.getName()).append("-")
-                    .append(this.confirmPeriod).append(",");
+                    .append(this.confirmPeriod);
         }
         return builder.toString();
     }
@@ -72,7 +72,7 @@ public class SMACross implements IStrategy {
         Rule rule;
         if ( this.confirmPeriod > 0 ) {
             boolean confirmed = confirm(sma, sma1, this.confirmPeriod, index );
-            builder.append(confirmed).append(",");
+            builder.append(confirmed);
             rule = ( (i, tR) -> confirmed );
         }
         else {

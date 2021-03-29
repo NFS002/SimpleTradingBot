@@ -52,12 +52,12 @@ public class ROCP implements IStrategy {
         ClosePriceIndicator closePriceIndicator = new ClosePriceIndicator( timeSeries );
         ROCIndicator rocIndicator = new ROCIndicator( closePriceIndicator, this.rocperiod);
         BigDecimal v = (BigDecimal) rocIndicator.getValue( index ).getDelegate();
-        this.next = v.toPlainString() + ",";
+        this.next = v.toPlainString();
         Rule rule = new OverIndicatorRule( rocIndicator, this.rocthreshold);
         if ( this.roccperiod > 0 ) {
             ROCIndicator roccIndicator = new ROCIndicator( rocIndicator, this.roccperiod );
             BigDecimal v1 = (BigDecimal) roccIndicator.getValue( index ).getDelegate();
-            this.next += v1.toPlainString() + ",";
+            this.next += v1.toPlainString();
             rule = rule.and( new OverIndicatorRule( roccIndicator, this.roccthreshold ));
         }
         return rule;
@@ -74,9 +74,9 @@ public class ROCP implements IStrategy {
     }
 
     private String getHeader() {
-        String header = this.getName() + "-" + this.rocperiod + "-" + this.rocthreshold + ",";
+        String header = this.getName() + "-" + this.rocperiod + "-" + this.rocthreshold;
         if ( this.roccperiod > 0 ) {
-            header += "ROCC" + "-" + this.roccperiod + "-" + this.roccthreshold + ",";
+            header += "ROCC" + "-" + this.roccperiod + "-" + this.roccthreshold;
         }
         return header;
     }

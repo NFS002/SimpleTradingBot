@@ -19,6 +19,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -81,7 +82,10 @@ public class Static {
 
 
     private static boolean checkRootDir( int n ) {
-        ROOT_OUT = "out/" + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + "-(" + n + ")/";
+        String short_env = String.valueOf(Config.STB_ENV.charAt(0)).toLowerCase();
+        ROOT_OUT = "out/" +
+                LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE) +
+                "-" + short_env + n + "/";
         File f = new File(ROOT_OUT);
         return f.exists();
     }
@@ -102,13 +106,13 @@ public class Static {
         log = Logger.getLogger( rootLoggerName );
         log.setUseParentHandlers( false );
 
-        XMLFormatter formatter = new XMLFormatter();
 
         try {
 
-            FileHandler fileHandler = new FileHandler(outDir + "/debug.log");
+            FileHandler fileHandler = new FileHandler(outDir + "/debug.json.log");
             fileHandler.setLevel( Level.ALL );
-            fileHandler.setFormatter( formatter );
+            fileHandler.setFormatter( Config.LOG_FORMATTER );
+
             log.addHandler(fileHandler);
 
             ConsoleHandler consoleHandler = new ConsoleHandler();

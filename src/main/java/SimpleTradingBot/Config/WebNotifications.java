@@ -29,7 +29,7 @@ public class WebNotifications {
 
             com.rollbar.notifier.config.Config config
                     = withAccessToken(Config.ROLLBAR_API_KEY)
-                    .environment("production")
+                    .environment(Config.STB_ENV)
                     .codeVersion("1.0.0")
                     .build();
             rollbar = Rollbar.init(config);

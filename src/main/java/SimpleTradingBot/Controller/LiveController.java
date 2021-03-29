@@ -75,6 +75,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
                 .withMaxBarCount( MAX_BAR_COUNT )
                 .withName( symbol );
         this.symbol = symbol;
+
         this.timeSeries = builder.build();
         this.buyer = new LiveTrader( symbol, baseDir );
         this.handler = new Handler( symbol );
@@ -104,6 +105,8 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
 
         if ( TEST_LEVEL == TestLevel.MOCK )
             FakeOrderResponses.register( this.symbol );
+
+
     }
 
     /* Getters & Setters */
@@ -331,6 +334,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         try {
             this.log.entering(this.getClass().getSimpleName(), "onResponse");
             this.log.fine("Received candlestick response");
+            this.setThreadName();
 
             boolean inTime = BACKTEST || isResponseInTime(candlestick);
 
@@ -624,8 +628,8 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
     private void initLogger( File baseDir ) throws IOException {
         this.log = Logger.getLogger("root." + this.symbol );
         this.log.setLevel( Level.ALL );
-        FileHandler handler = new FileHandler( baseDir + "/debug.log" );
-        handler.setFormatter( new XMLFormatter() );
+        FileHandler handler = new FileHandler( baseDir + "/debug.json.log" );
+        handler.setFormatter( LOG_FORMATTER );
         this.log.addHandler( handler );
         this.log.setUseParentHandlers( true );
     }
@@ -637,6 +641,13 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
             this.log.severe("Failed to initialize data collection, File already exists.");
         }
         this.candleStickEventWriter = new CandleStickEventWriter(rootPathString);
+    }
+
+    private void setThreadName( ) {
+        Thread t = Thread.currentThread();
+        String groupName = t.getThreadGroup().getName();
+        String name = String.format("%s.%s.controller", groupName, this.symbol );
+        t.setName( name);
     }
 
     private void closeLogHandlers() {

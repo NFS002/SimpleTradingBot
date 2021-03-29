@@ -36,8 +36,8 @@ public class MACD implements IStrategy {
         StringBuilder builder = new StringBuilder();
         String name = this.getName();
         builder.append( name ).append("-").append( this.shortPeriod )
-                .append("-").append( this.longPeriod ).append(",");
-        builder.append( name ).append("s-").append( this.signalPeriod ).append(",");
+                .append("-").append( this.longPeriod );
+        builder.append( name ).append("s-").append( this.signalPeriod );
         return builder.toString();
     }
 

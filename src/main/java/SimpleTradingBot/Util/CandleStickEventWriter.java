@@ -1,5 +1,6 @@
 package SimpleTradingBot.Util;
 
+import SimpleTradingBot.Config.Config;
 import com.binance.api.client.domain.event.CandlestickEvent;
 import com.binance.api.client.domain.market.Candlestick;
 
@@ -27,17 +28,18 @@ public class CandleStickEventWriter {
 
     private String getNextAvailableFullPath(String rootDataPath, String dateString) {
         int versionNumber = 1;
-        String suggestedFullPath = this.getSuggestedFullPath(rootDataPath, dateString, versionNumber);
+        String shortEnv = String.valueOf(Config.STB_ENV.charAt(0)).toLowerCase();
+        String suggestedFullPath = this.getSuggestedFullPath(rootDataPath, dateString, shortEnv, versionNumber);
         while (new File(suggestedFullPath).exists()) {
-            suggestedFullPath = this.getSuggestedFullPath(rootDataPath, dateString, ++versionNumber);
+            suggestedFullPath = this.getSuggestedFullPath(rootDataPath, dateString, shortEnv, ++versionNumber);
         };
         return suggestedFullPath;
     }
 
-    private String getSuggestedFullPath(String rootDataPath, String dateString, int versionNumber) {
+    private String getSuggestedFullPath(String rootDataPath, String dateString, String shortEnv, int versionNumber) {
         return String.format(
-                "%s%s-(%s).csv",
-                rootDataPath, dateString, versionNumber
+                "%s%s-%s%s.csv",
+                rootDataPath, dateString, shortEnv, versionNumber
         );
     }
 

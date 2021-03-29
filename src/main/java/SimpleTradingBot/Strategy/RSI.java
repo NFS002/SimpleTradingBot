@@ -42,7 +42,7 @@ public class RSI implements IStrategy {
         ClosePriceIndicator closePriceIndicator = new ClosePriceIndicator( timeSeries );
         RSIIndicator  rsiIndicator = new RSIIndicator( closePriceIndicator, this.period );
         BigDecimal v = (BigDecimal) rsiIndicator.getValue( index ).getDelegate();
-        this.next = v.toPlainString() + ",";
+        this.next = v.toPlainString();
         return new UnderIndicatorRule( rsiIndicator, this.overSold );
     }
 
