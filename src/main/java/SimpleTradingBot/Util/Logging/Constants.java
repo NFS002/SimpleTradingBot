@@ -29,7 +29,7 @@ public class Constants {
 	/**
 	 * JSON key for logger name
 	 */
-	public static final String KEY_LOGGER_NAME = "logger_name";
+	public static final String KEY_LOGGER_NAME = "logger";
 
 	/**
 	 * JSON key for log level

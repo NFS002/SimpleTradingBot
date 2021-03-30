@@ -95,7 +95,7 @@ public class JSONFormatter extends Formatter {
 		} else {
 			object.put(logLevelKey, record.getLevel().getName());
 		}
-		object.put(threadIdKey, String.valueOf(record.getThreadID()));
+		object.put(threadIdKey, record.getThreadID());
 
 		if (null != record.getSourceClassName()) {
 			object.put(loggerClassKey, record.getSourceClassName());

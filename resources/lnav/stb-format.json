@@ -1,0 +1,83 @@
+{
+  "stb_log" : {
+    "title" : "Custom STB Log Format",
+    "description" : "Custom STB Log Format",
+    "json": true,
+    "timestamp-field": "@timestamp",
+    "hide-extra": false,
+    "level-field" : "level",
+    "body-field" : "message",
+    "module-field": "logger",
+    "file-pattern" : ".*\\.json.log$",
+    "level" : {
+      "error" : "ERROR",
+      "warning" : "WARN",
+      "info" : "INFO",
+      "debug" : "DEBUG",
+      "trace" : "FINE|FINEST"
+    },
+    "value" : {
+      "@timestamp": {
+        "kind": "string"
+      },
+      "message" : {
+        "kind" : "string"
+      },
+      "logger_name" : {
+        "kind" : "string",
+        "identifier": true
+      },
+      "thread" : {
+        "kind" : "integer"
+      },
+      "level" : {
+        "kind" : "string"
+      },
+      "class" : {
+        "kind" : "string"
+      },
+      "method" : {
+        "kind" : "string",
+        "identier": "true"
+      }
+    },
+    "line-format": [
+      {
+        "field": "thread"
+      },
+      ".",
+      {
+        "field": "logger_name"
+      },
+      "@",
+      {
+        "field": "__timestamp__"
+      },
+      " -> ",
+      {
+        "field": "__level__"
+      },
+      " :: ",
+      {
+        "field": "message"
+      }
+    ],
+    "highlights": {
+      "info_level_highlight" : {
+        "pattern": "INFO",
+        "color": "Green"
+      },
+      "error_level_highlight" : {
+        "pattern": "ERROR",
+        "color": "Red",
+        "background-color": "Grey",
+        "blink": true
+      },
+      "warning_level_highlight" : {
+        "pattern": "WARN",
+        "color": "DarkOrange",
+        "blink": true
+      }
+    }
+  }
+}
