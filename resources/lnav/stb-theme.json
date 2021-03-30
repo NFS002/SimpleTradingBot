@@ -4,15 +4,19 @@
     "theme-defs": {
       "stb": {
         "vars": {
+          "black": "#2d2a2e",
           "red": "#ff6868",
           "green": "#007f00",
+          "lime": "#00ff00",
           "yellow": "#cdcd00",
           "blue": "#5394ec",
           "magenta": "#ff70ff",
-          "cyan": "#33cccc"
+          "cyan": "#33cccc",
+          "white": "#808080"
         },
         "styles": {
           "identifier": {
+            "color": "semantic()",
             "background-color": "#011627"
           },
           "text": {
@@ -56,10 +60,14 @@
         },
         "syntax-styles": {
           "keyword": {
-            "color": "$cyan"
+            "color": "$green"
           },
           "string": {
             "color": "$green",
+            "bold": true
+          },
+          "number": {
+            "color": "$Olive",
             "bold": true
           },
           "comment": {
@@ -70,9 +78,6 @@
           },
           "symbol": {
             "color": "#82aaff"
-          },
-          "number": {
-            "color": "#f78c6c"
           },
           "re-special": {
             "color": "$cyan"

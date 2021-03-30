@@ -23,7 +23,7 @@
       "message" : {
         "kind" : "string"
       },
-      "logger_name" : {
+      "logger" : {
         "kind" : "string",
         "identifier": true
       },
@@ -38,7 +38,7 @@
       },
       "method" : {
         "kind" : "string",
-        "identier": "true"
+        "identifier": true
       }
     },
     "line-format": [
@@ -47,15 +47,15 @@
       },
       ".",
       {
-        "field": "logger_name"
+        "field": "logger"
       },
       "@",
       {
-        "field": "__timestamp__"
+        "field": "@timestamp"
       },
       " -> ",
       {
-        "field": "__level__"
+        "field": "level"
       },
       " :: ",
       {
@@ -65,7 +65,8 @@
     "highlights": {
       "info_level_highlight" : {
         "pattern": "INFO",
-        "color": "Green"
+        "color": "Green",
+        "underline": true
       },
       "error_level_highlight" : {
         "pattern": "ERROR",
