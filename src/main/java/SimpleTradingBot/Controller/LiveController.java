@@ -89,7 +89,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.paused = false;
 
         if ( !BACKTEST && COLLECT_DATA ) {
-            initDataCollection();
+            initDataCollection(baseDir);
         }
 
 
@@ -634,13 +634,8 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.log.setUseParentHandlers( true );
     }
 
-    private void initDataCollection() throws IOException {
-        File rootPath = new File(Static.DATA_ROOT + this.symbol);
-        String rootPathString = rootPath.toString() + "/";
-        if (!rootPath.exists() && !rootPath.mkdirs()) {
-            this.log.severe("Failed to initialize data collection, File already exists.");
-        }
-        this.candleStickEventWriter = new CandleStickEventWriter(rootPathString);
+    private void initDataCollection( File baseDir ) throws IOException {
+        this.candleStickEventWriter = new CandleStickEventWriter(baseDir);
     }
 
     private void setThreadName( ) {

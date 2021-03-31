@@ -96,7 +96,7 @@ public class Config {
     public static boolean BACKTEST = false;
 
     final public static Map<String, String> BACKTEST_DATA_SYMBOL_MAP = new HashMap<>() {{
-       put("STEEMBTC", "data/STEEMBTC/2021-03-22.csv");
+       put("CKBBTC", "out/2021-03-31-l1/CKBBTC/stream.csv");
     }};
 
     final public static long MOCK_ORDER_ID = 12345L;

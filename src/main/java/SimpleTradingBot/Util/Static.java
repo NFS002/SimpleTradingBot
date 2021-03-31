@@ -32,8 +32,6 @@ public class Static {
 
     public static String ROOT_OUT;
 
-    public static String DATA_ROOT;
-
     public static BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance( Config.BINANCE_API_KEY, Config.BINANCE_SECRET_KEY);
 
     public static DateTimeFormatter binanceTimeFormatter = DateTimeFormatter.ofLocalizedTime( FormatStyle.SHORT );
@@ -72,11 +70,11 @@ public class Static {
 
     private static void initRtWriter() {
         try {
-            rtWriter = new PrintWriter(ROOT_OUT + "rt.csv");
+            rtWriter = new PrintWriter(ROOT_OUT + "cycle.csv");
             rtWriter.append( Cycle.CSV_HEADER ).flush();
         }
         catch ( IOException e ) {
-            log.warning( "Cant create necessary rt files. Skipping rt logging" );
+            log.warning( "Cant create necessary cycle files. Skipping cycle logging" );
         }
     }
 
@@ -96,11 +94,6 @@ public class Static {
         File outDir = new File(ROOT_OUT);
         if ( !outDir.mkdirs() )
             throw new STBException( 50 );
-
-        DATA_ROOT = "data/";
-        File dataDir = new File(DATA_ROOT);
-        dataDir.mkdirs();
-
 
         String rootLoggerName = "root";
         log = Logger.getLogger( rootLoggerName );

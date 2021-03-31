@@ -377,11 +377,11 @@ public class TestTrader {
     private void initRtWriter( File baseDir ) {
         ROCIndicator indicator;
         try {
-            rtWriter = new PrintWriter( baseDir + "/rt.csv");
+            rtWriter = new PrintWriter( baseDir + "/cycle.csv");
             rtWriter.append( Cycle.CSV_HEADER ).flush();
         }
         catch ( IOException e ) {
-            log.warning( "Cant create necessary rt files. Skipping rt logging" );
+            log.warning( "Cant create necessary cycle files. Skipping cycle logging" );
         }
     }
 

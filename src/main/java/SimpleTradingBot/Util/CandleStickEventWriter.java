@@ -18,29 +18,11 @@ public class CandleStickEventWriter {
 
     private long idx = 0;
 
-    public CandleStickEventWriter(String rootDataPath) throws IOException {
-        String dateString = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        String fullDataPath = getNextAvailableFullPath(rootDataPath, dateString);
+    public CandleStickEventWriter(File rootPath) throws IOException {
+        String fullDataPath = rootPath + "/stream.csv";
         this.writer = new PrintWriter(fullDataPath);
         this.writeHeader();
         this.writer.flush();
-    }
-
-    private String getNextAvailableFullPath(String rootDataPath, String dateString) {
-        int versionNumber = 1;
-        String shortEnv = String.valueOf(Config.STB_ENV.charAt(0)).toLowerCase();
-        String suggestedFullPath = this.getSuggestedFullPath(rootDataPath, dateString, shortEnv, versionNumber);
-        while (new File(suggestedFullPath).exists()) {
-            suggestedFullPath = this.getSuggestedFullPath(rootDataPath, dateString, shortEnv, ++versionNumber);
-        };
-        return suggestedFullPath;
-    }
-
-    private String getSuggestedFullPath(String rootDataPath, String dateString, String shortEnv, int versionNumber) {
-        return String.format(
-                "%s%s-%s%s.csv",
-                rootDataPath, dateString, shortEnv, versionNumber
-        );
     }
 
     public void writeHeader() {
