@@ -10,8 +10,8 @@
     "module-field": "logger",
     "file-pattern" : ".*\\.json.log$",
     "level" : {
-      "error" : "ERROR",
-      "warning" : "WARN",
+      "error" : "SEVERE",
+      "warning" : "WARNING",
       "info" : "INFO",
       "debug" : "DEBUG",
       "trace" : "FINE|FINEST"
@@ -39,6 +39,9 @@
       "method" : {
         "kind" : "string",
         "identifier": true
+      },
+      "exception": {
+        "kind": "json"
       }
     },
     "line-format": [
@@ -69,13 +72,13 @@
         "underline": true
       },
       "error_level_highlight" : {
-        "pattern": "ERROR",
+        "pattern": "SEVERE",
         "color": "Red",
         "background-color": "Grey",
         "blink": true
       },
       "warning_level_highlight" : {
-        "pattern": "WARN",
+        "pattern": "WARNING",
         "color": "DarkOrange",
         "blink": true
       }

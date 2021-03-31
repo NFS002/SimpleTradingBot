@@ -121,7 +121,11 @@ public class TimeKeeper {
         int warningPeriod = 3;
         Level level = this.nErr < Config.MAX_ERR - warningPeriod ? Level.FINE :  Level.WARNING;
         long intervalMillis = intervalToMillis( Config.CANDLESTICK_INTERVAL );
-        log.log(level,"Next candlestick time difference: " + time_diff + ", tolerance: " + Config.INTERVAL_TOLERANCE + "sequence: " + this.nErr   );
+
+        log.log(level, "Next candlestick time difference: " + time_diff +
+                ", tolerance: " + Config.INTERVAL_TOLERANCE +
+                ", sequence: " + this.nErr   );
+
         if ( (time_diff >= intervalMillis - Config.INTERVAL_TOLERANCE) && (time_diff <= intervalMillis + Config.INTERVAL_TOLERANCE) ) {
             log.exiting(this.getClass().getSimpleName(), "checkEventTime");
             this.nErr = 0;
