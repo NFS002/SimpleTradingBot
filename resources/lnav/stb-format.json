@@ -69,7 +69,8 @@
       "info_level_highlight" : {
         "pattern": "INFO",
         "color": "DarkGreen",
-        "underline": true
+        "underline": true,
+        "blink": true
       },
       "error_level_highlight" : {
         "pattern": "SEVERE",
@@ -80,11 +81,12 @@
       "warning_level_highlight" : {
         "pattern": "WARNING",
         "color": "DarkOrange",
+        "background-color": "Grey",
         "blink": true
       },
       "thread_id_highlight": {
         "pattern": "\\d{2}(?=.root)",
-        "color": "Gold1"
+        "color": "MediumPurple1"
       },
       "class_highlight":{
         "pattern": "class.*",

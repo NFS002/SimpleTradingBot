@@ -13,9 +13,7 @@
           "magenta": "#ff70ff",
           "cyan": "#33cccc",
           "white": "#808080",
-          "purple": "#af87ff",
-          "aquamarine": "#87ffd7",
-          "gold": "#ffd700"
+          "purple": "#af87ff"
         },
         "styles": {
           "identifier": {
