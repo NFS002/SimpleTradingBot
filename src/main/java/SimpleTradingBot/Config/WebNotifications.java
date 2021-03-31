@@ -21,7 +21,7 @@ public class WebNotifications {
     }
 
     private static void initWebNotifications() {
-        if (Config.WEB_NOTIFICATIONS) {
+        if ( WEB_NOTIFICATIONS ) {
 
             if (Config.ROLLBAR_API_KEY == null) {
                 throw new IllegalArgumentException("Web notifications are enabled, but ROLLBAR_API_KEY is null");

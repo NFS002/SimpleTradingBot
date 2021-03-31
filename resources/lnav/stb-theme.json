@@ -14,15 +14,15 @@
           "cyan": "#33cccc",
           "white": "#808080",
           "purple": "#af87ff",
-          "aquamarine": "#87ffd7"
+          "aquamarine": "#87ffd7",
+          "gold": "#ffd700"
         },
         "styles": {
           "identifier": {
-            "color": "Gold1"
+            "color": "$gold"
           },
           "text": {
-            "color": "$cyan",
-            "background-color": "#011627"
+            "color": "$cyan":
           },
           "alt-text": {
             "color": "$magenta",

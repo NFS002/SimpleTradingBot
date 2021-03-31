@@ -81,6 +81,18 @@
         "pattern": "WARNING",
         "color": "DarkOrange",
         "blink": true
+      },
+      "thread_id_highlight": {
+        "pattern": "\\d{2}(?=.[a-zA-Z]+)",
+        "color": "Gold1"
+      },
+      "class_highlight":{
+        "pattern": "class.*",
+        "color": "Aquamarine1"
+      },
+      "method_highlight": {
+        "pattern": "method.*",
+        "color": "Aquamarine1"
       }
     }
   }
