@@ -68,7 +68,7 @@
     "highlights": {
       "info_level_highlight" : {
         "pattern": "INFO",
-        "color": "Green",
+        "color": "DarkGreen",
         "underline": true
       },
       "error_level_highlight" : {
@@ -83,16 +83,16 @@
         "blink": true
       },
       "thread_id_highlight": {
-        "pattern": "\\d{2}(?=.[a-zA-Z]+)",
+        "pattern": "\\d{2}(?=.root)",
         "color": "Gold1"
       },
       "class_highlight":{
         "pattern": "class.*",
-        "color": "Aquamarine1"
+        "color": "SteelBlue1"
       },
       "method_highlight": {
         "pattern": "method.*",
-        "color": "Aquamarine1"
+        "color": "SteelBlue1"
       }
     }
   }

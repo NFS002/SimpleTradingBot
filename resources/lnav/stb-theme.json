@@ -19,13 +19,13 @@
         },
         "styles": {
           "identifier": {
-            "color": "$gold"
+            "color": "$purple"
           },
           "text": {
             "color": "$cyan"
           },
           "alt-text": {
-            "color": "$magenta",
+            "color": "$purple",
             "bold": true
           },
           "ok": {
@@ -46,9 +46,6 @@
           },
           "adjusted-time": {
             "color": "$magenta"
-          },
-          "skewed-time": {
-            "color": "$yellow"
           },
           "offset-time": {
             "color": "$cyan"
