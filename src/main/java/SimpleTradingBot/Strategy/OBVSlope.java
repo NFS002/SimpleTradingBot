@@ -1,6 +1,6 @@
 package SimpleTradingBot.Strategy;
 
-import SimpleTradingBot.Strategy.Rule.ContinouslyInSlopeRule;
+import SimpleTradingBot.Strategy.Lib.ContinouslyInSlopeRule;
 import org.ta4j.core.Rule;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.volume.OnBalanceVolumeIndicator;
@@ -25,13 +25,12 @@ public class OBVSlope implements IStrategy {
     }
 
     public OBVSlope( ) {
-        this( 70, -1, 100 );
+        this( -1, 70, 100 );
     }
 
 
     private String getHeader(){
-        String name = getName();
-        return name + "-" + this.minSlope +
+        return "OBV-" + this.minSlope +
                 "-" + this.maxSlope + "-"
                 + this.minCount;
     }
@@ -46,12 +45,14 @@ public class OBVSlope implements IStrategy {
     }
 
     @Override
-    public String getName() {
-        return this.getClass().getSimpleName();
+    public String getNext() {
+        return this.next;
     }
 
     @Override
-    public String getNext() {
-        return this.next;
+    public String toString() {
+        return "OBV: " + this.minSlope +
+                "-" + this.maxSlope + "-"
+                + this.minCount;
     }
 }

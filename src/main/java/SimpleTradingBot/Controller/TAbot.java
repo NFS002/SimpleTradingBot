@@ -12,15 +12,9 @@ public class TAbot {
 
     private final String symbol;
 
-    private Logger log;
+    private final Logger log;
 
     private String next;
-
-    public String getNext() {
-        String row = this.next;
-        this.next = "";
-        return row;
-    }
 
     public TAbot( String symbol ) {
         String loggerName = this.getClass().getSimpleName();
@@ -29,16 +23,30 @@ public class TAbot {
         this.next = getHeader();
     }
 
+    public String getNext() {
+        String row = this.next;
+        this.next = this.getEmptyRow();
+        return row;
+    }
+
     private String getHeader() {
         StringBuilder builder = new StringBuilder( );
         int len = Config.TA_STRATEGIES.length;
         for (int i = 0; i < len; i++ ) {
             IStrategy rule = Config.TA_STRATEGIES[i];
             builder.append( rule.getNext() );
-            if (i < len - 1 ) {
+            if (i < len - 1 )
                 builder.append(",");
-            }
         }
+        return builder.toString();
+    }
+
+    private String getEmptyRow() {
+        StringBuilder builder = new StringBuilder( );
+        int len = Config.TA_STRATEGIES.length;
+        if (len > 0)
+            builder.append(",");
+        builder.append(",".repeat(len));
         return builder.toString();
     }
 
@@ -50,6 +58,10 @@ public class TAbot {
         int index = series.getEndIndex();
         StringBuilder builder = new StringBuilder();
         int len = Config.TA_STRATEGIES.length;
+
+        if (len > 0)
+            builder.append(",");
+
         for ( int i = 0; i < len; i++ ) {
             IStrategy r = Config.TA_STRATEGIES[i];
             Rule rule = r.apply( series, index );
@@ -61,7 +73,8 @@ public class TAbot {
 
             boolean ruleSatisfied = rule.isSatisfied( index );
             allSatisfied = allSatisfied && ruleSatisfied;
-            this.log.info( "Rule " + r.getName() + " applied, satisfied: " + ruleSatisfied );
+            String name = r.getClass().getSimpleName();
+            this.log.info( "Rule " + name + " applied, satisfied: " + ruleSatisfied );
         }
 
         this.next = builder.toString();

@@ -270,7 +270,7 @@ public class TestController implements BinanceApiCallback<CandlestickEvent> {
     private void initTsWriter( File baseDir ) throws IOException {
         this.tsWriter = new PrintWriter( baseDir + "/ts.csv" );
         String taHeader = this.taBot.getNext();
-        String myHeader = "TIME,CLOSE,PCHANGE,STOP,POS,";
+        String myHeader = "time,close,pchange,stop,pos,";
         int n = myHeader.length();
         int l = taHeader.length();
         if ( l > 1 )

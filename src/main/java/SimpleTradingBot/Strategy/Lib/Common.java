@@ -1,4 +1,4 @@
-package SimpleTradingBot.Strategy.Rule;
+package SimpleTradingBot.Strategy.Lib;
 
 import java.math.BigDecimal;
 

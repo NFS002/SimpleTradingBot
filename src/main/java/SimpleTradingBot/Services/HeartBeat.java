@@ -136,6 +136,8 @@ public class HeartBeat {
     private void _maintenance()  throws STBException {
         this.log.entering( this.getClass().getSimpleName(), "_maintenance");
 
+        this.log.info("Performing maintenance for " + this.controllers.size() + " controllers");
+
         for (LiveController controller : this.controllers) {
             String symbol = controller.getSymbol();
             this.log.info("Performing maintenance for symbol: " + symbol);

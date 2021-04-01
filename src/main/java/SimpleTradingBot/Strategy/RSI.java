@@ -30,11 +30,8 @@ public class RSI implements IStrategy {
     }
 
     private String getHeader() {
-        StringBuilder builder = new StringBuilder();
-        String name = this.getName();
-        builder.append(name).append("-").append( this.period ).append( "-")
-                .append(this.overBought).append("-").append(this.overSold).append(",");
-        return builder.toString();
+        return "RSI-" + this.period + "-" +
+                this.overBought + "-" + this.overSold;
     }
 
     @Override
@@ -47,12 +44,14 @@ public class RSI implements IStrategy {
     }
 
     @Override
-    public String getName() {
-        return this.getClass().getSimpleName();
+    public String getNext() {
+        return this.next;
     }
 
     @Override
-    public String getNext() {
-        return this.next;
+    public String toString() {
+        return "RSI: " + this.overBought + "-"
+                + this.overSold + "-"
+                + this.period;
     }
 }

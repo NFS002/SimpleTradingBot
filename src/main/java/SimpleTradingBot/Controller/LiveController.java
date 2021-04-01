@@ -376,7 +376,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
                     this.buyer.findAndSetState( );
 
                     /* Log and send notifications */
-                    this.log( nextBar, pChange );
+                    this.logAll( nextBar, pChange );
                     WebNotifications.controllerUpdate(symbol, this.timeSeries.getBarCount());
                 }
             }
@@ -501,8 +501,9 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.log.exiting( this.getClass().getSimpleName(), "liveStream" );
     }
 
-    private void log(Bar bar, BigDecimal pChange) {
-        this.log.entering( this.getClass().getName(), "logTs");
+    private void logAll(Bar bar, BigDecimal pChange) {
+        this.log.entering( this.getClass().getName(), "logAll");
+
         if ( LOG_TS_AT != -1 && this.timeSeries.getBarCount() >= LOG_TS_AT ) {
             ZonedDateTime dateTime = bar.getBeginTime();
             String readableTime = Static.toReadableTime( dateTime );
@@ -521,8 +522,9 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
             this.logTa();
         }
         else
-            this.log.info("Skipping TS logging");
-        this.log.exiting(this.getClass().getName(), "logTs");
+            this.log.info("Skipping logging");
+
+        this.log.exiting(this.getClass().getName(), "logAll");
     }
 
     private Bar candlestickEventToBar( CandlestickEvent candlestickEvent )  {
@@ -592,7 +594,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
             if ( sufficientBars() )
                 this.taBot.isSatisfied(this.timeSeries);
             BigDecimal pChange = this.getPriceChangePercent();
-            this.log( bar, pChange );
+            this.logAll( bar, pChange );
         }
 
         log.exiting( this.getClass().getSimpleName(), "initSeries");
@@ -614,14 +616,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.tsWriter = new PrintWriter( baseDir + "/ts.csv" );
         String taHeader = this.taBot.getNext();
         String myHeader = "time,close,pchange,stop,pos,";
-        int n = myHeader.length();
-        int l = taHeader.length();
-        if ( l > 1 )
-            taHeader = taHeader.substring(0, l - 1);
-        else
-            myHeader = myHeader.substring( 0, n - 1 );
-        String header = myHeader + taHeader;
-        this.tsWriter.append( header ).append("\n").flush();
+        this.tsWriter.append( myHeader ).append( taHeader ).append("\n").flush();
     }
 
 
@@ -629,7 +624,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.log = Logger.getLogger("root." + this.symbol );
         this.log.setLevel( Level.ALL );
         FileHandler handler = new FileHandler( baseDir + "/debug.json.log" );
-        handler.setFormatter( LOG_FORMATTER );
+        handler.setFormatter(LOG_FORMATTER);
         this.log.addHandler( handler );
         this.log.setUseParentHandlers( true );
     }

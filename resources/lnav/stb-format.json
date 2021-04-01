@@ -37,8 +37,7 @@
         "kind" : "string"
       },
       "method" : {
-        "kind" : "string",
-        "identifier": true
+        "kind" : "string"
       },
       "exception": {
         "kind": "json"

@@ -7,7 +7,6 @@ public interface IStrategy {
 
     Rule apply( TimeSeries timeSeries, int index );
 
-    String getName( );
-
     String getNext( );
+
 }

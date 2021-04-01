@@ -1,6 +1,7 @@
 package SimpleTradingBot.Config;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Strategy.*;
+import SimpleTradingBot.Strategy.IStrategy;
 import SimpleTradingBot.Util.Logging.JSONFormatter;
 import SimpleTradingBot.Util.Static;
 import SimpleTradingBot.Test.TestLevel;
@@ -13,6 +14,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Formatter;
@@ -73,7 +75,7 @@ public class Config {
 
     public static final int LOG_TS_AT = 0;
 
-    final public static int START_AT = 500;
+    final public static int START_AT = 501;
 
     public static final boolean INIT_TS = true;
 
@@ -157,6 +159,7 @@ public class Config {
                 .append("min_bars: " + START_AT + "\n")
                 .append("stop_loss: " + STOP_LOSS_PERCENT + "\n")
                 .append("CANDLESTICK_INTERVAL: " + CANDLESTICK_INTERVAL + "\n")
+                .append("TA_STRATEGIES: " + Arrays.toString(TA_STRATEGIES) + "\n")
                 .append("min_volumes: " + minVolume + "\n")
                 .append("max_symbols: " + MAX_SYMBOLS + "\n")
                 .append("logTa: " + SHOULD_LOG_TA + "\n")

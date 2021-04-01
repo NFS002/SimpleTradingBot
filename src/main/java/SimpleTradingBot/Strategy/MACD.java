@@ -33,12 +33,8 @@ public class MACD implements IStrategy {
     }
 
     private String getHeader() {
-        StringBuilder builder = new StringBuilder();
-        String name = this.getName();
-        builder.append( name ).append("-").append( this.shortPeriod )
-                .append("-").append( this.longPeriod );
-        builder.append( name ).append("s-").append( this.signalPeriod );
-        return builder.toString();
+        return "MACD-" + this.shortPeriod + "-" + this.longPeriod
+                + ",MACDS-" + this.signalPeriod;
     }
 
     @Override
@@ -51,18 +47,20 @@ public class MACD implements IStrategy {
         builder.append( v0.toPlainString() ).append(",");
         EMAIndicator macdsIndicator = new EMAIndicator( macdIndicator, this.signalPeriod );
         BigDecimal v1 = (BigDecimal) macdsIndicator.getValue( index ).getDelegate();
-        builder.append( v1.toPlainString() ).append(",");
+        builder.append( v1.toPlainString() );
         this.next = builder.toString();
         return new OverIndicatorRule( macdIndicator, macdsIndicator );
     }
 
     @Override
-    public String getName() {
-        return this.getClass().getSimpleName();
+    public String getNext() {
+        return this.next;
     }
 
     @Override
-    public String getNext() {
-        return this.next;
+    public String toString() {
+        return "MACD: short_period=" + this.shortPeriod
+                + ", long_period=" + this.longPeriod
+                + ", signal_period=" + this.signalPeriod;
     }
 }

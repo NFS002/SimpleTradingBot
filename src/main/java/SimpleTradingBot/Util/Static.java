@@ -7,7 +7,6 @@ import SimpleTradingBot.Models.QueueMessage;
 import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.domain.general.ExchangeInfo;
 import com.binance.api.client.domain.general.SymbolInfo;
-import com.rollbar.notifier.Rollbar;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -19,13 +18,13 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.logging.*;
 
+import static SimpleTradingBot.Config.Config.LOG_FORMATTER;
 import static SimpleTradingBot.Config.Config.SKIP_SLIPPAGE_TRADES;
 
 public class Static {
@@ -104,7 +103,7 @@ public class Static {
 
             FileHandler fileHandler = new FileHandler(outDir + "/debug.json.log");
             fileHandler.setLevel( Level.ALL );
-            fileHandler.setFormatter( Config.LOG_FORMATTER );
+            fileHandler.setFormatter( LOG_FORMATTER );
 
             log.addHandler(fileHandler);
 
