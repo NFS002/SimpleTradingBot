@@ -24,12 +24,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.logging.*;
 
-import static SimpleTradingBot.Config.Config.LOG_FORMATTER;
-import static SimpleTradingBot.Config.Config.SKIP_SLIPPAGE_TRADES;
+import static SimpleTradingBot.Config.Config.*;
 
 public class Static {
 
-    public static String ROOT_OUT;
+    public static String ROOT_OUT = "out/";
 
     public static BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance( Config.BINANCE_API_KEY, Config.BINANCE_SECRET_KEY);
 
@@ -78,19 +77,27 @@ public class Static {
     }
 
 
-    private static boolean checkRootDir( int n ) {
-        String short_env = String.valueOf(Config.STB_ENV.charAt(0)).toLowerCase();
-        ROOT_OUT = "out/" +
-                LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE) +
-                "-" + short_env + n + "/";
-        File f = new File(ROOT_OUT);
-        return f.exists();
+    private static String getSuggestedOut(int version) {
+        String shortEnv = String.valueOf(Config.STB_ENV.charAt(0)).toLowerCase();
+        return BASE_OUT_PATH + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE) +
+                "-" + shortEnv + version + "/";
     }
 
 
     private static void initRootLoggers()  {
-        for  ( int n = 1; checkRootDir( n ); n++ );
-        File outDir = new File(ROOT_OUT);
+
+        int version = 1;
+        String suggestedOut = getSuggestedOut(version);
+        File outDir = new File(suggestedOut);
+
+        while (outDir.exists()) {
+            version += 1;
+            suggestedOut = getSuggestedOut(version);
+            outDir = new File(suggestedOut);
+        }
+
+        ROOT_OUT = suggestedOut;
+
         if ( !outDir.mkdirs() )
             throw new STBException( 50 );
 
@@ -125,19 +132,11 @@ public class Static {
             return String.valueOf( millis );
         Instant instant = Instant.ofEpochMilli( millis );
         ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant( instant, Config.ZONE_ID);
-        return binanceTimeFormatter.format( zonedDateTime );
+        return toReadableTime(zonedDateTime);
     }
 
     public static synchronized String toReadableTime( ZonedDateTime dateTime ) {
         return binanceTimeFormatter.format( dateTime );
-    }
-
-    public static synchronized String toReadableDate( long millis ) {
-        if ( millis < 0)
-            return String.valueOf( millis );
-        Instant instant = Instant.ofEpochMilli( millis );
-        ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant( instant, Config.ZONE_ID);
-        return quandlDateTimeFormatter.format( zonedDateTime );
     }
 
     public static synchronized String toReadableDate( ZonedDateTime dateTime ) {
@@ -154,6 +153,10 @@ public class Static {
             return String.valueOf( millis );
         Instant instant = Instant.ofEpochMilli( millis );
         ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant( instant, Config.ZONE_ID);
+        return toReadableDateTime( zonedDateTime );
+    }
+
+    public static synchronized String toReadableDateTime( ZonedDateTime zonedDateTime ) {
         return fullDateTimeFormatter.format( zonedDateTime );
     }
 

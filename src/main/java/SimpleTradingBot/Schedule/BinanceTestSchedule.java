@@ -1,6 +1,5 @@
 package SimpleTradingBot.Schedule;
 
-import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Controller.LiveController;
 import SimpleTradingBot.Models.FilterConstraints;
 import SimpleTradingBot.Plugins.CoinDesk;
@@ -11,13 +10,12 @@ import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.general.ExchangeInfo;
 import com.binance.api.client.domain.market.TickerStatistics;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Logger;
 
 import static SimpleTradingBot.Config.Config.*;
@@ -56,21 +54,36 @@ public class BinanceTestSchedule {
 
         log.info( "Creating symbol constraints...");
 
-        Set<String> backtested_symbols = BACKTEST_DATA_SYMBOL_MAP.keySet();
-        statisticsList.removeIf(ts -> !backtested_symbols.contains(ts.getSymbol()));
+        Map<String, String> backtestedSymbolMap = new HashMap<>();
+        for (String path : BACKTEST_STREAMS) {
+            File rootOut = new File(BASE_OUT_PATH + path);
+            if (rootOut.exists() && rootOut.getName().matches("\\d{4}-\\d{2}-\\d{2}-[a-z]\\d")) {
+                File[] symbolDirs = rootOut.listFiles(name -> name.getName().matches("[A-Z]{3,10}"));
+                for (File symbolDir : symbolDirs) {
+                    backtestedSymbolMap.put(symbolDir.getName(), symbolDir.getPath() + "/stream.csv");
+                }
+            }
+            else if (rootOut.exists() && rootOut.getName().matches("[A-Z]{3,10}")) {
+                backtestedSymbolMap.put(rootOut.getName(), rootOut.getPath() + "/stream.csv");
+            }
+            else throw new IllegalArgumentException("Unable to resolve backtest path set in config: " + path);
+        }
 
-        HashMap<String, FilterConstraints> constraints = FilterConstraints.getConstraints( exchangeInfo, statisticsList );
-        Static.constraints = constraints;
+        Set<String> backtestedSymbols = backtestedSymbolMap.keySet();
+        statisticsList.removeIf(ts -> !backtestedSymbols.contains(ts.getSymbol()));
+
+        Static.constraints = FilterConstraints.getConstraints( exchangeInfo, statisticsList );
         log.info("Successfully retrieved symbol constraints" );
 
-        for ( Map.Entry<String, String> entry : BACKTEST_DATA_SYMBOL_MAP.entrySet() ) {
+        CountDownLatch countDownLatch = new CountDownLatch(backtestedSymbols.size());
 
-            String symbol = entry.getKey();
-            String dataPath = entry.getValue();
+        for ( String symbol : backtestedSymbols ) {
+
+            String dataPath = backtestedSymbolMap.get(symbol);
 
             log.info( "Beginning back test of symbol: " + symbol);
 
-            Thread thread = new Thread(() -> {
+            Thread thread = new Thread(new ThreadGroup("kl"), () -> {
                 try {
                     LiveController controller = new LiveController( symbol );
                     Feeder feeder = getBinanceFeeder();
@@ -80,16 +93,23 @@ public class BinanceTestSchedule {
                         feeder.feed(line, controller);
                     }
                     controller.exit();
+                    countDownLatch.countDown();
                 }
                 catch (IOException e) {
                     log.severe("Back test failed for symbol: " + symbol + " : "
                             + e.toString());
                 }
             });
+
             thread.start();
+
         };
+
+
+        countDownLatch.await();
 
         /* Print aggregates */
         log.exiting("BinanceTestSchedule", "main");
+        System.exit(0);
     }
 }

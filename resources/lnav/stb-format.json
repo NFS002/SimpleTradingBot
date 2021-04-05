@@ -68,8 +68,7 @@
       "info_level_highlight" : {
         "pattern": "INFO",
         "color": "DarkGreen",
-        "underline": true,
-        "blink": true
+        "underline": true
       },
       "error_level_highlight" : {
         "pattern": "SEVERE",

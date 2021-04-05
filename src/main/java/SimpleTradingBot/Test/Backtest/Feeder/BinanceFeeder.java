@@ -20,6 +20,7 @@ public class BinanceFeeder implements Feeder {
         String[] splitLine = line.split(",");
         CandlestickEvent event = new CandlestickEvent();
         event.setEventTime(Long.parseLong(splitLine[0]));
+        event.setOpenTime(Long.parseLong(splitLine[0]));
         event.setSymbol(splitLine[1]);
         event.setIntervalId(splitLine[2]);
         event.setOpen(splitLine[3]);

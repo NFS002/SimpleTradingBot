@@ -54,7 +54,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
 
     private int coolOff;
 
-    private String symbol;
+    private final String symbol;
 
     private String baseSymbol;
 
@@ -286,7 +286,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
             this.tsWriter.append( resetMessage ).flush();
 
 
-        if ( INIT_TS )
+        if ( !BACKTEST && INIT_TS )
             initSeries();
 
         liveStream();
@@ -506,7 +506,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
 
         if ( LOG_TS_AT != -1 && this.timeSeries.getBarCount() >= LOG_TS_AT ) {
             ZonedDateTime dateTime = bar.getBeginTime();
-            String readableTime = Static.toReadableTime( dateTime );
+            String readableTime = Static.toReadableDateTime( dateTime );
             BigDecimal close = (BigDecimal) bar.getClosePrice().getDelegate();
             PositionState state = getState();
             BigDecimal stopLoss = this.buyer.getTrailingStop().getStopLoss();
@@ -585,11 +585,11 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         List<Candlestick> candlesticks = client.getCandlestickBars( this.symbol, Config.CANDLESTICK_INTERVAL);
         this.log.info("Initialising timeseries with " + candlesticks.size() + " bars");
 
-        for (Candlestick candletick : candlesticks) {
-            Bar bar = candlestickToBar( candletick );
+        for (Candlestick candlestick : candlesticks) {
+            Bar bar = candlestickToBar( candlestick );
             addBarToTimeSeries( bar  );
             if ( COLLECT_DATA ) {
-                this.candleStickEventWriter.writeCandlestick( candletick );
+                this.candleStickEventWriter.writeCandlestick( candlestick );
             }
             if ( sufficientBars() )
                 this.taBot.isSatisfied(this.timeSeries);

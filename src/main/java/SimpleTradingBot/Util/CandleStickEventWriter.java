@@ -16,8 +16,6 @@ public class CandleStickEventWriter {
 
     private final PrintWriter writer;
 
-    private long idx = 0;
-
     public CandleStickEventWriter(File rootPath) throws IOException {
         String fullDataPath = rootPath + "/stream.csv";
         this.writer = new PrintWriter(fullDataPath);
@@ -46,7 +44,7 @@ public class CandleStickEventWriter {
     }
 
     private String candlestickEventToCsvString(CandlestickEvent candlestickEvent) {
-        long time = candlestickEvent.getEventTime();
+        long time = candlestickEvent.getOpenTime();
         String symbol = candlestickEvent.getSymbol();
         String interval = candlestickEvent.getIntervalId();
         String open = candlestickEvent.getOpen();
@@ -60,13 +58,12 @@ public class CandleStickEventWriter {
     private String candlestickToCsvString(Candlestick candlestick) {
         String symbol = "";
         String interval = "";
+        long time = candlestick.getOpenTime();
         String open = candlestick.getOpen();
         String close = candlestick.getClose();
         String low = candlestick.getLow();
         String high = candlestick.getHigh();
         String volume = candlestick.getVolume();
-        String row = String.format("%s,%s,%s,%s,%s,%s,%s,%s", this.idx, symbol, interval, open, close, low, high, volume);
-        this.idx += 1;
-        return row;
+        return String.format("%s,%s,%s,%s,%s,%s,%s,%s", time, symbol, interval, open, close, low, high, volume);
     }
 }

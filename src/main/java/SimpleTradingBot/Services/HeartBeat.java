@@ -136,7 +136,11 @@ public class HeartBeat {
     private void _maintenance()  throws STBException {
         this.log.entering( this.getClass().getSimpleName(), "_maintenance");
 
-        this.log.info("Performing maintenance for " + this.controllers.size() + " controllers");
+        int totalControllers = this.controllers.size();
+        int totalCycles = this.controllers.stream().mapToInt(c -> c.getBuyer().getCycles().size() ).sum();
+
+        this.log.info("Performing maintenance for " + totalControllers
+                + " controllers, with " + totalCycles + " total cycles" );
 
         for (LiveController controller : this.controllers) {
             String symbol = controller.getSymbol();
@@ -145,8 +149,10 @@ public class HeartBeat {
             if (controller.isPaused())
                 this.log.info("Controller paused (" + symbol + "), skipping maintenance");
 
-            else if (this.checkHearbeat(controller))
-                this.log.info("Heartbeat passed for symbol: " + symbol + " .Continuing maintenance");
+            else if (this.checkHearbeat(controller)) {
+                String shortState = controller.getState().toString();
+                this.log.info("Heartbeat passed for symbol: " + symbol + ", controller state: " + shortState);
+            }
 
             else {
                 this.log.severe("Forcing exit of controller: " + symbol );
@@ -159,7 +165,6 @@ public class HeartBeat {
     private boolean checkHearbeat( LiveController controller ) {
         this.log.entering( this.getClass().getSimpleName(), "checkHeartbeat");
         String symbol = controller.getSymbol();
-        this.log.info( "Checking heartbeat for symbol: " + symbol );
         TimeSeries series = controller.getTimeSeries();
         ZonedDateTime endTime = series.getLastBar().getEndTime();
         ZonedDateTime now = ZonedDateTime.now( Config.ZONE_ID );

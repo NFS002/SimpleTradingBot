@@ -14,13 +14,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Formatter;
 
 
 public class Config {
+
+    public static String BASE_OUT_PATH = "out/";
 
     final public static Formatter LOG_FORMATTER = new JSONFormatter();
 
@@ -97,9 +97,9 @@ public class Config {
 
     public static boolean BACKTEST = false;
 
-    final public static Map<String, String> BACKTEST_DATA_SYMBOL_MAP = new HashMap<>() {{
-       put("CKBBTC", "out/2021-03-31-l1/CKBBTC/stream.csv");
-    }};
+    final public static String[] BACKTEST_STREAMS = new String[] {
+            "2021-04-05-l1"
+    };
 
     final public static long MOCK_ORDER_ID = 12345L;
 

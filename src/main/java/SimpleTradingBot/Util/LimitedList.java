@@ -14,7 +14,9 @@ public class LimitedList<E> extends LinkedList<E> {
     @Override
     public boolean add(E o) {
         super.add(o);
-        while (size() > this.limit) { super.remove(); }
+        while (size() > this.limit) {
+            super.remove();
+        }
         return true;
     }
 
