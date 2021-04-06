@@ -18,6 +18,8 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static SimpleTradingBot.Config.Config.QUOTE_ASSET;
+import static SimpleTradingBot.Config.Config.QUOTE_PER_TRADE;
 import static SimpleTradingBot.Util.Static.requestExit;
 
 import static  com.binance.api.client.domain.event.UserDataUpdateEvent.UserDataUpdateEventType.ACCOUNT_UPDATE;
@@ -57,7 +59,7 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
         this.listenKey = restClient.startUserDataStream();
         BinanceApiWebSocketClient webSocketClient = Static.getFactory().newWebSocketClient();
         Account account = restClient.getAccount( Config.RECV_WINDOW, timeStamp );
-        String quote = Config.QUOTE_ASSET;
+        String quote = QUOTE_ASSET;
         AssetBalance b = account.getAssetBalance( quote );
         setBalances( b.getFree() );
         this.closeable = webSocketClient.onUserDataUpdateEvent( this.listenKey, this );
@@ -69,19 +71,19 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
 
     private void setBalances(String remainingStr) {
         this.log.entering( this.getClass().getSimpleName(), "setBalances" );
-        log.info( "Setting balances with remaining balance of: " + remainingStr + " " + Config.QUOTE_ASSET);
+        log.info( "Setting balances with remaining balance of: " + remainingStr + " " + QUOTE_ASSET);
         BigDecimal remaining = new BigDecimal( remainingStr );
 
         remaining = remaining.compareTo( BigDecimal.ZERO ) < 1 ? BigDecimal.ZERO : remaining;
 
-        remaining = remaining.compareTo( Static.QUOTE_PER_TRADE ) > 0 ? Static.QUOTE_PER_TRADE : remaining;
+        remaining = remaining.compareTo( QUOTE_PER_TRADE ) > 0 ? QUOTE_PER_TRADE : remaining;
 
         switch ( Config.TEST_LEVEL ) {
             case REAL:
                 nextQty = remaining;
                 break;
             case MOCK:
-                nextQty = Static.QUOTE_PER_TRADE;
+                nextQty = QUOTE_PER_TRADE;
                 break;
         }
 
@@ -96,7 +98,7 @@ public class AccountManager implements BinanceApiCallback<UserDataUpdateEvent> {
         if ( event.getEventType() == ACCOUNT_UPDATE ) {
             AccountUpdateEvent accountUpdateEvent = event.getAccountUpdateEvent();
             List<AssetBalance> balances = accountUpdateEvent.getBalances();
-            String asset = Config.QUOTE_ASSET;
+            String asset = QUOTE_ASSET;
             Optional<AssetBalance> optAssetBalance = balances.stream().filter(b -> b.getAsset().equals(asset)).findFirst();
             if ( optAssetBalance.isPresent() ) {
                 AssetBalance assetBalance = optAssetBalance.get();

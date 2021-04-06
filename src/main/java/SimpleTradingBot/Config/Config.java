@@ -59,8 +59,6 @@ public class Config {
             new ROCP( 1, 0 )
     };
 
-    final public static int GBP_PER_TRADE = 25;
-
     final public static BigDecimal STOP_LOSS_PERCENT = BigDecimal.valueOf(0.95);
 
     final public static CandlestickInterval CANDLESTICK_INTERVAL = CandlestickInterval.ONE_MINUTE;
@@ -79,7 +77,9 @@ public class Config {
 
     public static final boolean INIT_TS = true;
 
-    final public static String QUOTE_ASSET = "BTC";
+    final public static String QUOTE_ASSET = "USDT";
+
+    public static BigDecimal QUOTE_PER_TRADE = BigDecimal.valueOf(35);
 
     final public static BigDecimal MAX_PRICE_CHANGE_PERCENT = new BigDecimal("0.001");
 
@@ -155,12 +155,11 @@ public class Config {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("budget_per_trade: " + GBP_PER_TRADE + "\n")
-                .append("min_bars: " + START_AT + "\n")
-                .append("stop_loss: " + STOP_LOSS_PERCENT + "\n")
+        sb.append("START_AT: " + START_AT + "\n")
+                .append("STOP_LOSS_PERCENT: " + STOP_LOSS_PERCENT + "\n")
                 .append("CANDLESTICK_INTERVAL: " + CANDLESTICK_INTERVAL + "\n")
                 .append("TA_STRATEGIES: " + Arrays.toString(TA_STRATEGIES) + "\n")
-                .append("min_volumes: " + minVolume + "\n")
+                .append("MIN_VOLUME: " + minVolume + "\n")
                 .append("max_symbols: " + MAX_SYMBOLS + "\n")
                 .append("logTa: " + SHOULD_LOG_TA + "\n")
                 .append("base_asset: " + QUOTE_ASSET + "\n")

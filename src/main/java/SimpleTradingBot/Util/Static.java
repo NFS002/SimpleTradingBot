@@ -48,8 +48,6 @@ public class Static {
 
     private static PrintWriter rtWriter;
 
-    public static BigDecimal QUOTE_PER_TRADE;
-
     private final static BlockingQueue<QueueMessage> DR_QUEUE = new LinkedBlockingQueue<>();
 
     private final static PriorityBlockingQueue<QueueMessage> EXIT_QUEUE = new PriorityBlockingQueue<>();

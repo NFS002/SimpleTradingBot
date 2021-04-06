@@ -17,7 +17,7 @@ public class CoinDesk {
 
     private static final String URL = "https://api.coindesk.com/v1/bpi/currentprice.json";
 
-    public static BigDecimal getQuotePerTrade() throws Exception {
+    public static BigDecimal getQuotePerTrade( int gbpPerTrade ) throws Exception {
         CloseableHttpClient client = HttpClients.createDefault();
         HttpGet get = new HttpGet( URL );
         CloseableHttpResponse response = client.execute(get);
@@ -26,7 +26,7 @@ public class CoinDesk {
         JsonObject jsonObject = new JsonParser().parse( content ).getAsJsonObject();
         JsonObject gbp = jsonObject.get("bpi").getAsJsonObject().get("GBP").getAsJsonObject();
         BigDecimal price = gbp.get("rate_float").getAsBigDecimal();
-        BigDecimal budget = BigDecimal.valueOf( Config.GBP_PER_TRADE );
+        BigDecimal budget = BigDecimal.valueOf( gbpPerTrade );
         int precision = 10;
         price = price.setScale( precision, RoundingMode.HALF_UP );
         budget = budget.setScale( precision, RoundingMode.HALF_UP );

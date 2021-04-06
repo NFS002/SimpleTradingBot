@@ -3,7 +3,6 @@ package SimpleTradingBot.Schedule;
 import SimpleTradingBot.Controller.LiveController;
 import SimpleTradingBot.Exception.STBException;
 import SimpleTradingBot.Models.FilterConstraints;
-import SimpleTradingBot.Plugins.CoinDesk;
 import SimpleTradingBot.Services.AccountManager;
 import SimpleTradingBot.Services.HeartBeat;
 import SimpleTradingBot.Util.*;
@@ -16,7 +15,6 @@ import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 import static SimpleTradingBot.Config.Config.*;
-import static SimpleTradingBot.Config.Config.COLLECT_DATA;
 
 public class BinanceLiveSchedule {
 
@@ -31,10 +29,6 @@ public class BinanceLiveSchedule {
         Thread parentThread = Thread.currentThread();
         parentThread.setName( "Parent" );
         BinanceApiRestClient client = Static.getFactory().newRestClient();
-
-        log.info( "Setting quote budget with CoinDesk plugin...");
-        Static.QUOTE_PER_TRADE = CoinDesk.getQuotePerTrade();
-        log.info( "Successfully set quote budget" );
 
         log.info( "Requesting exchange information...");
         ExchangeInfo exchangeInfo = client.getExchangeInfo();

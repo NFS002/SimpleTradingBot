@@ -2,7 +2,6 @@ package SimpleTradingBot.Schedule;
 
 import SimpleTradingBot.Controller.LiveController;
 import SimpleTradingBot.Models.FilterConstraints;
-import SimpleTradingBot.Plugins.CoinDesk;
 import SimpleTradingBot.Test.Backtest.Feeder.Feeder;
 import SimpleTradingBot.Util.Static;
 import SimpleTradingBot.Util.SupportedCoins;
@@ -34,10 +33,6 @@ public class BinanceTestSchedule {
         Thread parentThread = Thread.currentThread();
         parentThread.setName( "Parent" );
         BinanceApiRestClient client = Static.getFactory().newRestClient();
-
-        log.info( "Setting quote budget with CoinDesk plugin...");
-        Static.QUOTE_PER_TRADE = CoinDesk.getQuotePerTrade();
-        log.info( "Successfully set quote budget as: " + Static.QUOTE_PER_TRADE);
 
         log.info( "Requesting exchange information...");
         ExchangeInfo exchangeInfo = client.getExchangeInfo();
