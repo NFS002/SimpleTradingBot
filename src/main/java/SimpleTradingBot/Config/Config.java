@@ -36,13 +36,13 @@ public class Config {
 
     final public static long MIN_VOLUME = 10000;
 
-    final public static boolean FORCE_ORDER = false;
+    final public static boolean FORCE_ORDER = true;
 
-    final public static boolean FORCE_CLOSE = false;
+    final public static boolean FORCE_CLOSE = true;
 
     final public static int EXIT_AFTER = -1;
 
-    final public static int MAX_ERR = 50;
+    final public static int MAX_OOS_TICKS = 50;
 
     final public static int HB_TOLERANCE = 60000;
 
@@ -85,9 +85,7 @@ public class Config {
 
     final public static boolean TRAILING_STOP = true; //%
 
-    final public static double takeProfit = 1000; //%
-
-    final public static TestLevel TEST_LEVEL = TestLevel.MOCK;
+    final public static TestLevel TEST_LEVEL = TestLevel.REAL;
 
     final public static HashMap<String, OrderStatus[]> MOCK_ORDER_UPDATE_PATTERN = new HashMap<>() {{
         put( "*", new OrderStatus[]{ OrderStatus.FILLED });
@@ -108,10 +106,6 @@ public class Config {
     final public static int COOL_DOWN = 15;
 
     final public static boolean SKIP_SLIPPAGE_TRADES = true;
-
-    final public static boolean WEB_NOTIFICATIONS = false;
-
-    final public static int WEB_NOTIFICATION_UPDATES = 1000;
 
     final public static String STB_ENV = System.getenv("STB_ENV");
 
@@ -165,7 +159,6 @@ public class Config {
                 .append("base_asset: " + QUOTE_ASSET + "\n")
                 .append("min_price_change: " + MAX_PRICE_CHANGE_PERCENT + "\n")
                 .append("trailing_loss: " + TRAILING_STOP + "\n")
-                .append("take_profit: " + takeProfit + "\n")
                 .append("test_level: " + TEST_LEVEL + "\n")
                 .append("cool_down: " + COOL_DOWN + "\n")
                 .append("out_dir: " + Static.ROOT_OUT + "\n");

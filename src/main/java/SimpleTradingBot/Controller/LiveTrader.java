@@ -23,18 +23,16 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static SimpleTradingBot.Config.Config.STOP_LOSS_PERCENT;
+import static SimpleTradingBot.Config.Config.*;
 import static com.binance.api.client.domain.account.NewOrder.marketBuy;
 import static com.binance.api.client.domain.account.NewOrder.marketSell;
 import static SimpleTradingBot.Models.PositionState.Phase.*;
 import static SimpleTradingBot.Models.PositionState.Flags.*;
 import static SimpleTradingBot.Test.FakeOrderResponses.*;
-import static SimpleTradingBot.Config.Config.MAX_ORDER_UPDATES;
 import static SimpleTradingBot.Util.Static.getConstraint;
 
 public class LiveTrader {
@@ -110,10 +108,27 @@ public class LiveTrader {
     boolean open( BigDecimal close ) throws STBException {
         this.log.entering(this.getClass().getSimpleName(), "open");
         AccountManager am = AccountManager.getInstance();
-        BigDecimal baseQty = am.getNextQty();
-        BigDecimal proposedQty = baseQty.divide( close, RoundingMode.HALF_DOWN);
-        BigDecimal adjustedQty = this.constraints.adjustQty( proposedQty );
-        this.log.info( "Quantity : " + proposedQty + " -> " + adjustedQty);
+        BigDecimal tradeValue = am.getNextTradeValue();
+        BigDecimal baseQty = tradeValue.divide(close, MathContext.DECIMAL64);
+        BigDecimal minQty = this.constraints.getMIN_QTY();
+
+        if ( baseQty.compareTo(minQty) < 0 ) {
+            this.log.warning(String.format("Order quantity of %s is below minimum required quantity of %s", baseQty, minQty ));
+            System.out.printf("Current balance of %s is below minimum required quantity of %s%n", baseQty, minQty );
+            return false;
+        }
+
+        BigDecimal minNotional = this.constraints.getMIN_NOTIONAL();
+        BigDecimal currentNotional = baseQty.multiply( close, MathContext.DECIMAL64);
+
+        if ( currentNotional.compareTo( minNotional ) < 0) {
+            this.log.warning(String.format("Order notional of %s is below minimum notional value of %s", currentNotional, minNotional));
+            System.out.printf("Current notional of %s is below minimum notional value of %s (tradevalue=%s)%n", currentNotional, minNotional, tradeValue);
+            return false;
+        }
+
+        BigDecimal adjustedQty = this.constraints.adjustQty( baseQty );
+        this.log.info(String.format("New order quantity was adjusted: %s -> %s", baseQty, adjustedQty));
         int precision = this.constraints.getBasePrecision() - 2;
         NewOrder newOrder = marketBuy( this.symbol, Static.safeDecimal(adjustedQty,  precision ) );
         NewOrderResponse response = trySubmit( newOrder, close );
@@ -122,7 +137,7 @@ public class LiveTrader {
             return false;
         }
         else {
-            BigDecimal initialStop = close.multiply(Config.STOP_LOSS_PERCENT);
+            BigDecimal initialStop = close.multiply( STOP_LOSS_PERCENT );
             this.trailingStop.setStopLoss(initialStop);
             Position position = new Position(newOrder, response);
             Cycle newCycle = new Cycle( position );
@@ -434,11 +449,13 @@ public class LiveTrader {
 
         catch ( BinanceApiException e) {
 
-            log.log(Level.WARNING, "Failed submission, attempt: " + ++this.nErr, e);
+            this.nErr += 1;
+
+            Level level = this.nErr >= MAX_ORDER_RETRY ? Level.SEVERE : Level.WARNING;
+            log.log(level, "Failed order submission, attempt: " + this.nErr, e);
 
             if (this.nErr >= Config.MAX_ORDER_RETRY)
-                throw new STBException(70);
-
+                throw new STBException(70, e);
         }
 
         finally {

@@ -460,6 +460,8 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.log.info("Opening new order at " + closeStr );
         if (this.buyer.open( close ))
             restartCoolOff();
+        else
+            this.log.info("New order could not be opened");
         log.exiting(LiveController.class.getSimpleName(), "open");
     }
 

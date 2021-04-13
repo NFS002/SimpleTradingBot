@@ -6,7 +6,6 @@ import SimpleTradingBot.Util.Static;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.event.CandlestickEvent;
 import com.binance.api.client.domain.market.CandlestickInterval;
-import com.binance.api.client.domain.market.TickerStatistics;
 import org.ta4j.core.Bar;
 
 import java.time.Duration;
@@ -119,7 +118,7 @@ public class TimeKeeper {
     private boolean checkEventTime(long time_diff) throws STBException {
         log.entering(this.getClass().getSimpleName(), "checkEventTime");
         int warningPeriod = 3;
-        Level level = this.nErr < Config.MAX_ERR - warningPeriod ? Level.FINE :  Level.WARNING;
+        Level level = this.nErr < Config.MAX_OOS_TICKS - warningPeriod ? Level.FINE :  Level.WARNING;
         long intervalMillis = intervalToMillis( Config.CANDLESTICK_INTERVAL );
 
         log.log(level, "Next candlestick time difference: " + time_diff +
@@ -134,7 +133,7 @@ public class TimeKeeper {
         else {
             this.log.exiting(this.getClass().getSimpleName(), "checkEventTime");
 
-            if ( ++this.nErr >= Config.MAX_ERR) {
+            if ( ++this.nErr >= Config.MAX_OOS_TICKS) {
                 this.nErr = 0;
                 throw new STBException( 120 );
             }

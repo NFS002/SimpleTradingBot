@@ -39,8 +39,23 @@
       "method" : {
         "kind" : "string"
       },
-      "exception": {
-        "kind": "json"
+      "exception_class": {
+        "kind": "string"
+      },
+      "exception_message": {
+        "kind": "string"
+      },
+      "exception_trace": {
+        "kind": "string"
+      },
+      "cause_class": {
+        "kind": "string"
+      },
+      "cause_message": {
+        "kind": "string"
+      },
+      "cause_trace": {
+        "kind": "string"
       }
     },
     "line-format": [

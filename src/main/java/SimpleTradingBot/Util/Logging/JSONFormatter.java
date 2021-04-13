@@ -80,7 +80,7 @@ public class JSONFormatter extends Formatter {
 		
 		value = manager.getProperty(cname + ".key_message");
 		messageKey = (value != null) ? value: KEY_MESSAGE;
-		
+
 		value = manager.getProperty(cname + ".key_exception");
 		exceptionKey = (value != null) ? value: KEY_EXCEPTION;
 	}
@@ -106,21 +106,34 @@ public class JSONFormatter extends Formatter {
 		}
 		object.put(messageKey, formatMessage(record));
 
-		// Used an enum map for lighter memory consumption
 		if (null != record.getThrown()) {
-			Map<Constants.ExceptionKeys, Object> exceptionInfo = new EnumMap<>(Constants.ExceptionKeys.class);
-			exceptionInfo.put(Constants.ExceptionKeys.exception_class, record.getThrown().getClass().getName());
+			object.put(KEY_EXCEPTION_CLASS, record.getThrown().getClass().getName());
 
 			if (record.getThrown().getMessage() != null) {
-				exceptionInfo.put(Constants.ExceptionKeys.exception_message, record.getThrown().getMessage());
+				object.put(KEY_EXCEPTION_MESSAGE, record.getThrown().getMessage());
 			}
 
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			record.getThrown().printStackTrace(pw);
 			pw.close();
-			exceptionInfo.put(Constants.ExceptionKeys.stack_trace, sw.toString());
-			object.put(exceptionKey, exceptionInfo);
+			object.put(KEY_EXCEPTION_TRACE, sw.toString());
+
+			Throwable cause = record.getThrown().getCause();
+
+			if (cause != null) {
+				object.put(KEY_EXCEPTION_CAUSE_CLASS, cause.getClass().getName());
+
+				if (cause.getMessage() != null) {
+					object.put(KEY_EXCEPTION_CAUSE_MESSAGE, cause.getMessage());
+				}
+
+				StringWriter cause_sw = new StringWriter();
+				PrintWriter cause_pw = new PrintWriter(cause_sw);
+				cause.printStackTrace(cause_pw);
+				cause_pw.close();
+				object.put(KEY_EXCEPTION_CAUSE_TRACE, sw.toString());
+			}
 		}
 
 		return CONVERTER.convertToJson(object);

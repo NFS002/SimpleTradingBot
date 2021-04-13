@@ -1,6 +1,5 @@
 package SimpleTradingBot.Config;
 
-import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Models.Cycle;
 import com.rollbar.notifier.Rollbar;
 
@@ -8,20 +7,36 @@ import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static SimpleTradingBot.Config.Config.WEB_NOTIFICATIONS;
 import static com.rollbar.notifier.config.ConfigBuilder.withAccessToken;
-import static SimpleTradingBot.Config.Config.WEB_NOTIFICATION_UPDATES;
 
 public class WebNotifications {
 
     private static Rollbar rollbar;
 
+    private static final long UPDATES_AT = 10000;
+
+    private static final HashMap<String, Boolean> WEB_NOTIFICATIONS = new HashMap<>() {{
+        put("*", false);
+        put("cycle_complete", true);
+        put("controller_exit", true);
+        put("controller_update", true);
+        put("heartbeat_failure", true);
+        put("heartbeat_exit", true);
+        put("controller_stream", false);
+        put("exception", true);
+        put("info", true);
+    }};
+
     static {
         initWebNotifications();
     }
 
+    private static boolean isAnyEnabled() {
+        return WEB_NOTIFICATIONS.getOrDefault("*", true);
+    }
+
     private static void initWebNotifications() {
-        if ( WEB_NOTIFICATIONS ) {
+        if ( isAnyEnabled() ) {
 
             if (Config.ROLLBAR_API_KEY == null) {
                 throw new IllegalArgumentException("Web notifications are enabled, but ROLLBAR_API_KEY is null");
@@ -36,26 +51,30 @@ public class WebNotifications {
         }
     }
 
+    private static boolean isEnabled(String key) {
+        return WEB_NOTIFICATIONS.getOrDefault("*", false) && WEB_NOTIFICATIONS.getOrDefault(key, false);
+    }
+
     public static void error(Throwable throwable) {
-        if (rollbar != null) {
+        if ( isEnabled("exception")) {
             rollbar.error(throwable);
         }
     }
 
     public static void info(String message) {
-        if (rollbar != null) {
+        if (isEnabled("info")) {
             rollbar.info(message);
         }
     }
 
     public static void controllerExit(String symbol) {
-        if (rollbar != null) {
+        if (isEnabled("controller_exit")) {
             rollbar.critical(symbol + ": Preparing to exit controller and interrupt thread. ");
         }
     }
 
     public static void cycleCompleted(Cycle cycle) {
-        if (rollbar != null) {
+        if ( isEnabled("cycle_complete")) {
             HashMap<String, Object> params = cycle.toMap();
             String symbol = params.get("symbol").toString();
             rollbar.info("RT complete for symbol: " + symbol, params);
@@ -63,30 +82,30 @@ public class WebNotifications {
     }
 
     public static void controllerUpdate(String symbol, int ticks) {
-        if (rollbar != null) {
-            if (WEB_NOTIFICATION_UPDATES > 0 && ticks % WEB_NOTIFICATION_UPDATES == 0) {
+        if ( isEnabled("controller_update") ) {
+            if (UPDATES_AT > 0 && ticks % UPDATES_AT == 0) {
                 rollbar.info(symbol + ": Controller has processed" + ticks + " events");
             }
         }
     }
 
     public static void controllerStream(String symbol) {
-        if (rollbar != null) {
+        if ( isEnabled("controller_stream") ) {
             rollbar.info("Beginning stream: "
                     + symbol
                     + ", with regular updates set to "
-                    + WEB_NOTIFICATION_UPDATES);
+                    + UPDATES_AT);
         }
     }
 
     public static void heartbeatFailure(String symbol, long duration) {
-        if (rollbar != null) {
+        if ( isEnabled("heartbeat_failure") ) {
             rollbar.critical("Hearbeat failed for symbol: " + symbol + ", with idle duration of " + (duration/1000) + " (s)");
         }
     }
 
     public static void heartbeatExit(boolean close) {
-        if (rollbar != null) {
+        if ( isEnabled("hearbeat_exit") ) {
             rollbar.critical("Preparing to shutdown heartbeart and exit program");
 
             if (close)

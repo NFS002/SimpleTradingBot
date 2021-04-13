@@ -3,18 +3,21 @@ import org.apache.http.StatusLine;
 
 public class STBException extends RuntimeException {
 
-    private final String message;
-
     private final int statusCode;
 
-    public STBException( int statusCode ) {
+    public STBException( int statusCode, Throwable cause ) {
+        super( getMessage(statusCode), cause);
         this.statusCode = statusCode;
-        this.message = getMessage_internal( );
+    }
+
+    public STBException( int statusCode ) {
+        super( getMessage(statusCode) );
+        this.statusCode = statusCode;
     }
 
 
-    private String getMessage_internal( )  {
-        switch ( this.statusCode ) {
+    private static String getMessage( int statusCode )  {
+        switch ( statusCode ) {
 
             case 0: return "SHUTDOWN";
 
@@ -52,11 +55,6 @@ public class STBException extends RuntimeException {
 
             default:    throw new IllegalArgumentException("UNKNOWN_STATUS_CODE");
         }
-    }
-
-    @Override
-    public String getMessage() {
-        return this.statusCode + ": " + this.message;
     }
 
     public int getStatusCode() {

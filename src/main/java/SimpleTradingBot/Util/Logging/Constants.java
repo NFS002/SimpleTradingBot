@@ -57,14 +57,21 @@ public class Constants {
 	public static final String KEY_MESSAGE = "message";
 
 	/**
-	 * JSON key for the exception being logged
+	 * JSON keys for the exception and cause being logged
 	 */
+
 	public static final String KEY_EXCEPTION = "exception";
 
-	/**
-	 * JSON keys used for fields within the exception object
-	 */
-	public enum ExceptionKeys {
-		exception_class, exception_message, stack_trace
-	}
+	public static final String KEY_EXCEPTION_CLASS = "exception_class";
+
+	public static final String KEY_EXCEPTION_MESSAGE = "exception_message";
+
+	public static final String KEY_EXCEPTION_TRACE = "exception_trace";
+
+	public static final String KEY_EXCEPTION_CAUSE_CLASS = "cause_class";
+
+	public static final String KEY_EXCEPTION_CAUSE_MESSAGE = "cause_message";
+
+	public static final String KEY_EXCEPTION_CAUSE_TRACE = "cause_trace";
+
 }

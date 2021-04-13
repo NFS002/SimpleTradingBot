@@ -97,23 +97,17 @@ public class FilterConstraints {
             String quote = symbolInfo.getQuoteAsset();
             String base = symbolInfo.getBaseAsset();
             int basePrecision = symbolInfo.getBaseAssetPrecision();
-            Optional<SymbolFilter> mktLotFilterOpt = symbolInfo.getFilters().stream().filter(f -> f.getFilterType() == FilterType.MARKET_LOT_SIZE || f.getFilterType() == FilterType.LOT_SIZE ).findFirst();
+            Optional<SymbolFilter> mktLotFilterOpt = symbolInfo.getFilters().stream().filter(f -> f.getFilterType() == FilterType.MARKET_LOT_SIZE ).findFirst();
             mktLotFilterOpt.orElseThrow( () -> new STBException( 40 ));
             SymbolFilter mktLotFilter = mktLotFilterOpt.get();
 
-            String s = mktLotFilter.getMinQty();
-            BigDecimal minQty = new BigDecimal( s );
-
-            s = mktLotFilter.getMaxQty();
-            BigDecimal maxQty = new BigDecimal( s );
-
-            s = mktLotFilter.getStepSize();
-            BigDecimal qtyStep = new BigDecimal( s );
+            BigDecimal minQty = new BigDecimal( mktLotFilter.getMinQty() );
+            BigDecimal maxQty = new BigDecimal( mktLotFilter.getMaxQty() );
+            BigDecimal qtyStep = new BigDecimal( mktLotFilter.getStepSize() );
 
             SymbolFilter minNotFilter = symbolInfo.getSymbolFilter( FilterType.MIN_NOTIONAL );
 
-            s = minNotFilter.getMinNotional();
-            BigDecimal minNotional = new BigDecimal( s );
+            BigDecimal minNotional = new BigDecimal( minNotFilter.getMinNotional() );
 
             FilterConstraints filterConstraints = new FilterConstraints( minQty, maxQty, qtyStep, minNotional, base, quote, symbol, basePrecision );
             constraintsMap.put( symbol, filterConstraints);
