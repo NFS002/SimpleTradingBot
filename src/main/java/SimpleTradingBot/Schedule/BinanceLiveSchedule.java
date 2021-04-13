@@ -13,6 +13,7 @@ import com.binance.api.client.domain.market.TickerStatistics;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static SimpleTradingBot.Config.Config.*;
 
@@ -59,7 +60,7 @@ public class BinanceLiveSchedule {
 
         SymbolPredicate symbolPredicate = new SymbolPredicate( exchangeInfo );
         log.info( "Filtering symbols based on exchange information, under the following predicate: " + symbolPredicate);
-        statisticsList.removeIf(symbolPredicate);
+        statisticsList = statisticsList.stream().filter(symbolPredicate::isTradable).collect(Collectors.toList());
 
         if ( nSymbols > MAX_SYMBOLS ) {
             SymbolComparator comparator = new SymbolComparator();

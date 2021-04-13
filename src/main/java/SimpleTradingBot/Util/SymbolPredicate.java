@@ -8,10 +8,13 @@ import com.binance.api.client.domain.market.TickerStatistics;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.List;
+import java.util.Optional;
 
 import static SimpleTradingBot.Util.Static.getQuoteFromSymbol;
+import static com.binance.api.client.domain.general.FilterType.MARKET_LOT_SIZE;
+import static com.binance.api.client.domain.general.FilterType.PRICE_FILTER;
 
-public class SymbolPredicate implements java.util.function.Predicate<TickerStatistics> {
+public class SymbolPredicate {
 
     private final ExchangeInfo exchangeInfo;
 
@@ -19,14 +22,19 @@ public class SymbolPredicate implements java.util.function.Predicate<TickerStati
         this.exchangeInfo = exchangeInfo;
     }
 
-    @Override
-    public boolean test( TickerStatistics statistics ) {
+
+    public boolean isTradable(TickerStatistics statistics ) {
         String symbol = statistics.getSymbol();
+
+        /* Quote Asset */
+        String quote = getQuoteFromSymbol( symbol );
+        if ( !quote.equals( Config.QUOTE_ASSET ) )
+            return false;
 
         /* Volume */
         BigDecimal volume = new BigDecimal( statistics.getVolume() );
         if ( volume.compareTo( new BigDecimal( Config.MIN_VOLUME ) ) <= 0)
-            return true;
+            return false;
 
         /* Symbol Status */
         SymbolInfo info = this.exchangeInfo.getSymbolInfo( symbol );
@@ -35,18 +43,17 @@ public class SymbolPredicate implements java.util.function.Predicate<TickerStati
             return true;
 
         /* Min price change percent */
-        SymbolFilter f = info.getSymbolFilter( FilterType.PRICE_FILTER );
-        if ( !this.minPriceChangePercent( f ) )
-            return true;
+        SymbolFilter priceChangeFilter = info.getSymbolFilter( PRICE_FILTER );
+        if ( !this.minPriceChangePercent( priceChangeFilter ) )
+            return false;
 
-        /* Quote Asset */
-        String quote = getQuoteFromSymbol( symbol );
-        if ( !quote.equals( Config.QUOTE_ASSET ) )
-            return true;
+        if (info.getOrderTypes().stream().noneMatch( o -> o.equals(OrderType.MARKET)))
+            return false;
 
-        /* Order types */
-        List<OrderType> orderTypes = info.getOrderTypes();
-        return !orderTypes.contains(OrderType.MARKET);
+        if ( info.getFilters().stream().noneMatch(f -> f.getFilterType() == MARKET_LOT_SIZE) )
+            return false;
+
+        return true;
     }
 
     private boolean minPriceChangePercent(SymbolFilter f ) {

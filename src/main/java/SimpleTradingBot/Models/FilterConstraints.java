@@ -97,7 +97,7 @@ public class FilterConstraints {
             String quote = symbolInfo.getQuoteAsset();
             String base = symbolInfo.getBaseAsset();
             int basePrecision = symbolInfo.getBaseAssetPrecision();
-            Optional<SymbolFilter> mktLotFilterOpt = symbolInfo.getFilters().stream().filter(f -> f.getFilterType() == FilterType.MARKET_LOT_SIZE ).findFirst();
+            Optional<SymbolFilter> mktLotFilterOpt = symbolInfo.getFilters().stream().filter(f -> (f.getFilterType() == FilterType.MARKET_LOT_SIZE) ).findFirst();
             mktLotFilterOpt.orElseThrow( () -> new STBException( 40 ));
             SymbolFilter mktLotFilter = mktLotFilterOpt.get();
 
