@@ -11,8 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static SimpleTradingBot.Util.Static.getQuoteFromSymbol;
-import static com.binance.api.client.domain.general.FilterType.MARKET_LOT_SIZE;
-import static com.binance.api.client.domain.general.FilterType.PRICE_FILTER;
+import static com.binance.api.client.domain.general.FilterType.*;
 
 public class SymbolPredicate {
 
@@ -50,7 +49,7 @@ public class SymbolPredicate {
         if (info.getOrderTypes().stream().noneMatch( o -> o.equals(OrderType.MARKET)))
             return false;
 
-        if ( info.getFilters().stream().noneMatch(f -> f.getFilterType() == MARKET_LOT_SIZE) )
+        if ( info.getFilters().stream().noneMatch(f -> f.getFilterType() == LOT_SIZE) )
             return false;
 
         return true;

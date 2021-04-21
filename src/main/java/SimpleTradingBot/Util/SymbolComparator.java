@@ -7,11 +7,8 @@ public class SymbolComparator implements Comparator<TickerStatistics> {
 
     @Override
     public int compare(TickerStatistics s1, TickerStatistics s2) {
-        return (int) Math.round(Double.parseDouble(s2.getPriceChangePercent()) - Double.parseDouble(s1.getPriceChangePercent()));
-    }
-
-    @Override
-    public String toString() {
-        return "PRICE_CHANGE_PERCENT";
+        int dpChange = (int) Math.round(Double.parseDouble(s2.getPriceChangePercent()) - Double.parseDouble(s1.getPriceChangePercent()));
+        int dVolume = (int) Math.round(Double.parseDouble(s2.getVolume()) - Double.parseDouble(s1.getVolume()));
+        return dpChange != 0 ? dpChange : dVolume;
     }
 }

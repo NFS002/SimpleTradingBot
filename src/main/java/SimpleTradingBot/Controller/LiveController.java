@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.logging.*;
 
 import static SimpleTradingBot.Config.Config.*;
+import static SimpleTradingBot.Util.Static.toReadableTime;
 
 
 public class LiveController implements BinanceApiCallback<CandlestickEvent> {
@@ -156,7 +157,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
 
                 break;
 
-                case 120:   //"MAX_ERR";
+                case 120:   //"MAX_OSS_ERR";
 
                 case 130:   //"MAX_TIME_SYNC";
 
@@ -171,7 +172,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
                 }
 
                 catch ( Exception e ) {
-                    log.log( Level.SEVERE, " Error performing reset ", e);
+                    log.log( Level.SEVERE, "Error performing reset", e);
                     exit();
                 }
 
@@ -201,14 +202,19 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         else if ( cause.getMessage() != null && cause.getMessage().startsWith("sent ping but didn't receive pong") ) {
             long now = System.currentTimeMillis();
             this.timeKeeper.endStream( now );
+            String dateTime = toReadableTime( now );
             long time = this.timeKeeper.getStreamTime();
-            this.nWssErr = ( time < 600 ) ? this.nWssErr + 1 : 0;
-            this.log.warning( String.format("Wss err after time %d(s) (%d/%d)", time, this.nWssErr, Config.MAX_WSS_ERR ));
+            this.nWssErr += 1;
+            this.log.warning( String.format("Wss error at %s after %ds, number %d/%d",
+                    dateTime, time, this.nWssErr, MAX_WSS_ERR));
             if ( this.nWssErr < Config.MAX_WSS_ERR ) {
                 /* Wait a minute then reset */
                 try {
-                    closeWss( );
-                    Thread.sleep(60000 * 5);
+                    this.log.warning(String.format("Pausing wss with reset after %dms", WSS_RESET_PERIOD ) );
+                    this.closeWss( );
+                    this.pause();
+                    Thread.sleep( WSS_RESET_PERIOD );
+                    this.timeKeeper.skipNext();
                     liveStream();
                 }
 
@@ -228,11 +234,12 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         this.log.exiting( this.getClass().getSimpleName(), "onFailure" );
     }
 
-    private void request_deregister() {
+    private void requestDeregister() {
         this.log.entering( this.getClass( ).getSimpleName( ), "request_deregister");
-        this.log.severe( "Requesting deregister from HB" );
+        this.log.severe( "Requesting deregister from HB and removing filter constraint" );
         if ( !Static.requestDeregister( this.symbol ) )
             this.log.severe( "Deregister request failed");
+        Static.removeConstraint( this.symbol );
         this.log.exiting( this.getClass().getSimpleName( ), "request_deregister");
     }
 
@@ -250,11 +257,10 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         return false;
     }
 
-    private void closeWss( ) throws Exception {
+    private void closeWss( ) throws IOException {
         this.log.entering( this.getClass().getSimpleName(), "closeWss");
-        this.log.warning( "Closing wss..." );
+        this.log.warning(String.format("Closing wss"));
         this.closeable.close();
-        this.pause();
 
         if ( this.tsWriter != null )
             this.tsWriter.append( "\n" ).flush();
@@ -296,37 +302,31 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
 
     public void exit( ) {
         this.log.entering( this.getClass().getSimpleName(), "exit");
-        this.log.severe( "Preparing to exit controller and interrupt thread. ");
+        long currentTime = System.currentTimeMillis();
+        this.timeKeeper.endStream(currentTime);
+        long duration = this.timeKeeper.getStreamTime();
+        this.log.severe(String.format("Preparing to exit controller and interrupt thread after %ds", duration));
 
         WebNotifications.controllerExit(this.symbol);
 
-        request_deregister();
+        requestDeregister();
 
         if (!BACKTEST ) {
             try {
-                closeable.close();
-            } catch (IOException e) {
+                this.closeWss();
+            } catch (Exception e) {
                 log.log(Level.SEVERE, "Error closing WSS socket", e);
             }
         }
 
         this.tsWriter.close();
 
-        this.log.severe( "Removing filter constraint");
-
-        Static.removeConstraint( this.symbol );
-
-        StringBuilder msg = new StringBuilder();
-        long currentTime = System.currentTimeMillis();
         if (!BACKTEST) {
-            this.timeKeeper.endStream(currentTime);
-            long duration = this.timeKeeper.getStreamTime();
-            msg.append("Time Elapsed since open: ").append(duration).append("s");
-            this.log.severe(msg.toString());
-            this.log.exiting(this.getClass().getSimpleName(), "exit");
             this.closeDataCollection();
         }
+
         this.closeLogHandlers();
+        this.log.exiting(this.getClass().getSimpleName(), "exit");
     }
 
     @Override
@@ -335,6 +335,11 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
             this.log.entering(this.getClass().getSimpleName(), "onResponse");
             this.log.fine("Received candlestick response");
             this.setThreadName();
+
+            if (this.paused) {
+                this.log.warning("Controller is paused, but received candlestick event");
+                return;
+            }
 
             boolean inTime = BACKTEST || isResponseInTime(candlestick);
 
@@ -452,12 +457,12 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
         log.exiting( this.getClass().getSimpleName(), "close");
     }
 
-    private void open( Bar lastBar ) throws STBException {
+    private void open( Bar lastBar ) {
         this.log.entering( this.getClass().getSimpleName(), "open");
         BigDecimal cp = new BigDecimal( lastBar.getClosePrice().toString() );
         String closeStr = Static.safeDecimal( cp, 20 );
         BigDecimal close = new BigDecimal( closeStr );
-        this.log.info("Opening new order at " + closeStr );
+        this.log.info("Trying new order at " + closeStr );
         if (this.buyer.open( close ))
             restartCoolOff();
         else
@@ -468,8 +473,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
     private void addBarToTimeSeries( Bar bar ) {
         log.entering(this.getClass().getName(), "addBarToTimeSeries");
         this.timeSeries.addBar( bar );
-        if ( this.paused )
-            this.paused = false;
+        this.paused = false;
         log.exiting(this.getClass().getName(), "addBarToTimeSeries");
     }
 
@@ -490,16 +494,16 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
 
     public void liveStream() throws BinanceApiException {
         this.log.entering( this.getClass().getSimpleName(), "liveStream" );
-        log.info("Attempting data stream....");
         long currentTime = System.currentTimeMillis();
-        String dateTime = Static.toReadableTime( currentTime );
+        String dateTime = toReadableTime( currentTime );
         if (!BACKTEST) {
             this.timeKeeper.startStream(currentTime);
         }
         BinanceApiWebSocketClient webSocketClient = Static.getFactory().newWebSocketClient();
         this.closeable = webSocketClient.onCandlestickEvent( this.symbol.toLowerCase(), Config.CANDLESTICK_INTERVAL, this);
-        log.info("Connected to WSS data stream at " + dateTime + ", " + this.symbol );
+        log.info("Connected to WSS data stream at " + dateTime);
         WebNotifications.controllerStream(this.symbol);
+        this.paused = false;
         this.log.exiting( this.getClass().getSimpleName(), "liveStream" );
     }
 

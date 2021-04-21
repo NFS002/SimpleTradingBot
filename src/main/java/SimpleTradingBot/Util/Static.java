@@ -17,7 +17,9 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -246,8 +248,10 @@ public class Static {
         return DR_QUEUE.offer( m );
     }
 
-    public static synchronized QueueMessage checkForDeregister( ) {
-        return DR_QUEUE.poll( );
+    public static synchronized List<QueueMessage> checkForDeregister( ) {
+        ArrayList<QueueMessage> list = new ArrayList<>();
+        DR_QUEUE.drainTo(list);
+        return list;
     }
 
     public static synchronized void logRt(Cycle cycle ) {

@@ -30,13 +30,11 @@ public class Config {
 
     final public static int MAX_ORDER_RETRY = 5;
 
-    final public static int HEART_BEAT_INTERVAL = 1;
-
     final public static int AM_INTERVAL = 30;
 
-    final public static long MIN_VOLUME = 10000;
+    final public static long MIN_VOLUME = 100000;
 
-    final public static boolean FORCE_ORDER = true;
+    final public static boolean FORCE_ORDER = false;
 
     final public static boolean FORCE_CLOSE = true;
 
@@ -44,7 +42,11 @@ public class Config {
 
     final public static int MAX_OOS_TICKS = 50;
 
-    final public static int HB_TOLERANCE = 60000;
+    final public static int HB_INTERVAL = 5;
+
+    final public static int HB_TOLERANCE = 60000 * 5;
+
+    final public static long WSS_RESET_PERIOD = 60000 * 5;
 
     final public static ZoneId ZONE_ID = ZoneId.systemDefault();
 
@@ -67,7 +69,7 @@ public class Config {
 
     public static final int MAX_WSS_ERR = 5;
 
-    public static final int MAX_SYMBOLS = 5;
+    public static final int MAX_SYMBOLS = 1;
 
     public static final boolean SHOULD_LOG_TA = true;
 

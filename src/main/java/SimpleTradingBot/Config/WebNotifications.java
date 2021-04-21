@@ -7,16 +7,18 @@ import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static SimpleTradingBot.Config.Config.ROLLBAR_API_KEY;
 import static com.rollbar.notifier.config.ConfigBuilder.withAccessToken;
 
 public class WebNotifications {
 
     private static Rollbar rollbar;
 
+    private static final boolean WN_ENABLED = false;
+
     private static final long UPDATES_AT = 10000;
 
     private static final HashMap<String, Boolean> WEB_NOTIFICATIONS = new HashMap<>() {{
-        put("*", false);
         put("cycle_complete", true);
         put("controller_exit", true);
         put("controller_update", true);
@@ -32,18 +34,18 @@ public class WebNotifications {
     }
 
     private static boolean isAnyEnabled() {
-        return WEB_NOTIFICATIONS.getOrDefault("*", true);
+        return WN_ENABLED;
     }
 
     private static void initWebNotifications() {
         if ( isAnyEnabled() ) {
 
-            if (Config.ROLLBAR_API_KEY == null) {
+            if (ROLLBAR_API_KEY == null) {
                 throw new IllegalArgumentException("Web notifications are enabled, but ROLLBAR_API_KEY is null");
             }
 
             com.rollbar.notifier.config.Config config
-                    = withAccessToken(Config.ROLLBAR_API_KEY)
+                    = withAccessToken(ROLLBAR_API_KEY)
                     .environment(Config.STB_ENV)
                     .codeVersion("1.0.0")
                     .build();
@@ -52,7 +54,7 @@ public class WebNotifications {
     }
 
     private static boolean isEnabled(String key) {
-        return WEB_NOTIFICATIONS.getOrDefault("*", false) && WEB_NOTIFICATIONS.getOrDefault(key, false);
+        return isAnyEnabled() && WEB_NOTIFICATIONS.getOrDefault(key, false);
     }
 
     public static void error(Throwable throwable) {

@@ -19,7 +19,7 @@ public class STBException extends RuntimeException {
     private static String getMessage( int statusCode )  {
         switch ( statusCode ) {
 
-            case 0: return "SHUTDOWN";
+            case 0:     return "SHUTDOWN";
 
             case 30:    return "CONF_CREATE";
 
@@ -39,7 +39,7 @@ public class STBException extends RuntimeException {
 
             case 110:   return "SERVER_TIME_DIFFERENCE";
 
-            case 120:   return "MAX_ERR";
+            case 120:   return "MAX_OSS_ERR";
 
             case 130:   return "MAX_TIME_SYNC";
 
@@ -51,9 +51,9 @@ public class STBException extends RuntimeException {
 
             case 200:   return "UNKNOWN_STATE";
 
-            case 210:   return "UNKOWN_STATUS";
+            case 210:   return "UNKNOWN_STATUS";
 
-            default:    throw new IllegalArgumentException("UNKNOWN_STATUS_CODE");
+            default:    throw new IllegalArgumentException("UNKNOWN_STATUS_CODE: " + statusCode);
         }
     }
 

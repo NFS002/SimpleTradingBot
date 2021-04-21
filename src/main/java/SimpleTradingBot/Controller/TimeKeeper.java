@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,13 +36,20 @@ public class TimeKeeper {
 
     private long endStreamTime;
 
+    private boolean skipNext;
+
     public TimeKeeper( String symbol ) throws STBException {
         this.log = Logger.getLogger("root." + symbol + ".tk");
         this.client = Static.getFactory().newRestClient();
         this.nServerChecks = 0;
         this.startStreamTime = this.endStreamTime = 0;
         this.nErr = 0;
+        this.skipNext = false;
         updateServerTime();
+    }
+
+    public void skipNext() {
+        this.skipNext = true;
     }
 
     public void startStream(long currentTime) {
@@ -62,7 +70,7 @@ public class TimeKeeper {
     public void updateServerTime() throws STBException {
         long serverTime = client.getServerTime();
         long clientTime = System.currentTimeMillis();
-        if (this.nServerChecks++ == 0) {
+        if (this.nServerChecks == 0) {
             this.lastTimeDifference = serverTime - clientTime;
         } else {
             long diff = serverTime - clientTime;
@@ -73,6 +81,7 @@ public class TimeKeeper {
             }
         }
         checkServerTime();
+        this.nServerChecks += 1;
     }
 
     /* Check we are in sync with the binance server system time (Internal) */
@@ -94,6 +103,11 @@ public class TimeKeeper {
         this.log.entering(this.getClass().getSimpleName(), "checkEvent");
 
         checkInterval(candlestickEvent);
+
+        if (this.skipNext) {
+            this.skipNext = false;
+            return true;
+        }
 
         ZonedDateTime lastBarEndTime = lastBar.getEndTime();
 

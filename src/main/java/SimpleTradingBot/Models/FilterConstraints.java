@@ -80,11 +80,14 @@ public class FilterConstraints {
             return this.MIN_QTY;
         else if ( proposedQty.compareTo( this.MAX_QTY ) >= 0 )
             return this.MAX_QTY;
-        else {
+        else if (this.STEP.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal adjusted = this.MIN_QTY;
-            while ( adjusted.compareTo(proposedQty) < 1 )
+            while (adjusted.compareTo(proposedQty) < 1)
                 adjusted = adjusted.add(this.STEP);
             return adjusted.subtract(this.STEP);
+        }
+        else {
+            return proposedQty;
         }
     }
 
@@ -97,7 +100,7 @@ public class FilterConstraints {
             String quote = symbolInfo.getQuoteAsset();
             String base = symbolInfo.getBaseAsset();
             int basePrecision = symbolInfo.getBaseAssetPrecision();
-            Optional<SymbolFilter> mktLotFilterOpt = symbolInfo.getFilters().stream().filter(f -> (f.getFilterType() == FilterType.MARKET_LOT_SIZE) ).findFirst();
+            Optional<SymbolFilter> mktLotFilterOpt = symbolInfo.getFilters().stream().filter(f -> (f.getFilterType() == FilterType.LOT_SIZE) ).findFirst();
             mktLotFilterOpt.orElseThrow( () -> new STBException( 40 ));
             SymbolFilter mktLotFilter = mktLotFilterOpt.get();
 

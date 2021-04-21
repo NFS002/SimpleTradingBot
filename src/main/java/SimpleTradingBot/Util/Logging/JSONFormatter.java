@@ -6,6 +6,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -132,7 +133,7 @@ public class JSONFormatter extends Formatter {
 				PrintWriter cause_pw = new PrintWriter(cause_sw);
 				cause.printStackTrace(cause_pw);
 				cause_pw.close();
-				object.put(KEY_EXCEPTION_CAUSE_TRACE, sw.toString());
+				object.put(KEY_EXCEPTION_CAUSE_TRACE, cause_sw.toString());
 			}
 		}
 

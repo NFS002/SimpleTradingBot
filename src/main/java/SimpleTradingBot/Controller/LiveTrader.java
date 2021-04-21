@@ -114,7 +114,6 @@ public class LiveTrader {
 
         if ( baseQty.compareTo(minQty) < 0 ) {
             this.log.warning(String.format("Order quantity of %s is below minimum required quantity of %s", baseQty, minQty ));
-            System.out.printf("Current balance of %s is below minimum required quantity of %s%n", baseQty, minQty );
             return false;
         }
 
@@ -123,10 +122,8 @@ public class LiveTrader {
 
         if ( currentNotional.compareTo( minNotional ) < 0) {
             this.log.warning(String.format("Order notional of %s is below minimum notional value of %s", currentNotional, minNotional));
-            System.out.printf("Current notional of %s is below minimum notional value of %s (tradevalue=%s)%n", currentNotional, minNotional, tradeValue);
             return false;
         }
-
         BigDecimal adjustedQty = this.constraints.adjustQty( baseQty );
         this.log.info(String.format("New order quantity was adjusted: %s -> %s", baseQty, adjustedQty));
         int precision = this.constraints.getBasePrecision() - 2;
@@ -451,8 +448,7 @@ public class LiveTrader {
 
             this.nErr += 1;
 
-            Level level = this.nErr >= MAX_ORDER_RETRY ? Level.SEVERE : Level.WARNING;
-            log.log(level, "Failed order submission, attempt: " + this.nErr, e);
+            log.log(Level.WARNING,"Failed order submission, attempt: " + this.nErr, e);
 
             if (this.nErr >= Config.MAX_ORDER_RETRY)
                 throw new STBException(70, e);

@@ -13,13 +13,14 @@ import org.ta4j.core.TimeSeries;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static SimpleTradingBot.Util.Static.requestExit;
 
-public class HeartBeat {
+public class  HeartBeat {
 
     private final Logger log;
 
@@ -71,7 +72,7 @@ public class HeartBeat {
         for (int i = 0; i < controllers.size(); i++) {
             String registeredSymbol = this.controllers.get(i).getSymbol();
             if ( symbol.equals(registeredSymbol) ) {
-                this.log.warning( "Deregistering: " + registeredSymbol );
+                this.log.warning( "Deregistering controller " + registeredSymbol );
                 index = i;
                 break;
             }
@@ -87,10 +88,10 @@ public class HeartBeat {
         this.log.entering( this.getClass().getSimpleName(), "maintain" );
 
         try {
-            QueueMessage message = Static.checkForDeregister();
+            List<QueueMessage> deregisterMessages = Static.checkForDeregister();
 
-            if ( message != null )
-                deregister( message.getSymbol() );
+            for (QueueMessage message : deregisterMessages)
+                deregister(message.getSymbol());
 
 
             /* If there no more registered controllers, close the thread */
@@ -109,6 +110,11 @@ public class HeartBeat {
                 this.log.info( "Preparing maintenance");
                 this._maintenance();
             }
+
+            deregisterMessages = Static.checkForDeregister();
+
+            for (QueueMessage message : deregisterMessages)
+                deregister(message.getSymbol());
         }
         catch ( Throwable e ) {
             this.log.log( Level.SEVERE, e.getMessage(), e );
@@ -155,7 +161,7 @@ public class HeartBeat {
             }
 
             else {
-                this.log.severe("Forcing exit of controller: " + symbol );
+                this.log.severe("Forcing exit of controller " + symbol );
                 controller.exit();
             }
         }
