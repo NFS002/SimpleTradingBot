@@ -30,7 +30,7 @@ public class Config {
 
     final public static int MAX_ORDER_RETRY = 5;
 
-    final public static int AM_INTERVAL = 30;
+    final public static int AM_INTERVAL = 60000 * 30;
 
     final public static long MIN_VOLUME = 100000;
 
@@ -42,11 +42,11 @@ public class Config {
 
     final public static int MAX_OOS_TICKS = 50;
 
-    final public static int HB_INTERVAL = 5;
+    final public static int HB_INTERVAL = 60000 * 5;
 
-    final public static int HB_TOLERANCE = 60000 * 5;
+    final public static int HB_TOLERANCE = 60000 * 3;
 
-    final public static long WSS_RESET_PERIOD = 60000 * 5;
+    final public static long WSS_RESET_PERIOD = 60000;
 
     final public static ZoneId ZONE_ID = ZoneId.systemDefault();
 
@@ -87,7 +87,7 @@ public class Config {
 
     final public static boolean TRAILING_STOP = true; //%
 
-    final public static TestLevel TEST_LEVEL = TestLevel.REAL;
+    final public static TestLevel TEST_LEVEL = TestLevel.MOCK;
 
     final public static HashMap<String, OrderStatus[]> MOCK_ORDER_UPDATE_PATTERN = new HashMap<>() {{
         put( "*", new OrderStatus[]{ OrderStatus.FILLED });

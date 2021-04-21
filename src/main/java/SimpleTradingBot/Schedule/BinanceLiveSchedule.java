@@ -90,8 +90,8 @@ public class BinanceLiveSchedule {
         /* Schedule execution of the services */
         log.info( "Scheduling execution of services..." );
         ScheduledExecutorService executorService = Executors.newScheduledThreadPool( 0 );
-        executorService.scheduleWithFixedDelay( heartBeat::maintain, 1, HB_INTERVAL, TimeUnit.MINUTES);
-        executorService.scheduleWithFixedDelay( accountManager::maintain, 0, AM_INTERVAL, TimeUnit.MINUTES );
+        executorService.scheduleWithFixedDelay( heartBeat::maintain, 60000, HB_INTERVAL, TimeUnit.MILLISECONDS);
+        executorService.scheduleWithFixedDelay( accountManager::maintain, 0, AM_INTERVAL, TimeUnit.MILLISECONDS);
 
         /* Print aggregates */
         log.exiting("Schedule", "main");

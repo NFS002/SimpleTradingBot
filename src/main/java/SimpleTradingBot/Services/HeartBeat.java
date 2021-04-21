@@ -109,12 +109,15 @@ public class  HeartBeat {
             else {
                 this.log.info( "Preparing maintenance");
                 this._maintenance();
+
             }
 
-            deregisterMessages = Static.checkForDeregister();
-
-            for (QueueMessage message : deregisterMessages)
-                deregister(message.getSymbol());
+            /* If there no more registered controllers, close the thread */
+            if ( this.controllers.isEmpty()) {
+                this.log.severe( "Controllers are empty, preparing to shutdown" );
+                requestExit( "*" );
+                this.shutdown();
+            }
         }
         catch ( Throwable e ) {
             this.log.log( Level.SEVERE, e.getMessage(), e );
