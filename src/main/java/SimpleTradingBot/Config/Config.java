@@ -36,7 +36,7 @@ public class Config {
 
     final public static boolean FORCE_ORDER = false;
 
-    final public static boolean FORCE_CLOSE = true;
+    final public static boolean FORCE_CLOSE = false;
 
     final public static int EXIT_AFTER = -1;
 
@@ -69,7 +69,7 @@ public class Config {
 
     public static final int MAX_WSS_ERR = 5;
 
-    public static final int MAX_SYMBOLS = 1;
+    public static final int MAX_SYMBOLS = 5;
 
     public static final boolean SHOULD_LOG_TA = true;
 
@@ -83,9 +83,11 @@ public class Config {
 
     public static BigDecimal QUOTE_PER_TRADE = BigDecimal.valueOf(35);
 
+    public static BigDecimal MIN_QUOTE_PER_TRADE = BigDecimal.valueOf(10);
+
     final public static BigDecimal MAX_PRICE_CHANGE_PERCENT = new BigDecimal("0.001");
 
-    final public static boolean TRAILING_STOP = true; //%
+    final public static boolean TRAILING_STOP = true;
 
     final public static TestLevel TEST_LEVEL = TestLevel.MOCK;
 

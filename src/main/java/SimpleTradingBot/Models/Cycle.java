@@ -68,7 +68,6 @@ public class Cycle {
 
     private boolean finalised;
 
-    /* For market orders */
     private BigDecimal openPrice;
 
     private BigDecimal closePrice;

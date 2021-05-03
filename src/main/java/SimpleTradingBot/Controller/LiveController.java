@@ -1,6 +1,7 @@
 package SimpleTradingBot.Controller;
 import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Exception.STBException;
+import SimpleTradingBot.Models.Position;
 import SimpleTradingBot.Test.TestLevel;
 import SimpleTradingBot.Test.FakeOrderResponses;
 import SimpleTradingBot.Util.CandleStickEventWriter;
@@ -122,6 +123,15 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
 
     public PositionState getState() {
         return this.buyer.getState();
+    }
+
+    public BigDecimal getStopLoss() {
+        if (this.getState().isBuyOrHold()) {
+            Position buyPosition = this.buyer.getLastCycle().getBuyPosition();
+            return buyPosition.getStopLoss();
+        } else {
+            return BigDecimal.ZERO;
+        }
     }
 
     public boolean isPaused() {
@@ -433,12 +443,11 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
 
     private boolean shouldClose( Bar lastBar ) {
         this.log.entering( this.getClass().getSimpleName(), "shouldClose");
-        PositionState state = this.buyer.getState();
-        PositionState.Phase stateType = state.getPhase();
-        this.log.info( String.format("State: %s", this.getState()));
+        PositionState state = this.getState();
+        this.log.info( String.format("State: %s", state));
 
-        if (  stateType == PositionState.Phase.HOLD ) {
-            boolean buyerClear = buyer.shouldClose(lastBar);
+        if (  state.isBuyOrHold() ) {
+            boolean buyerClear = this.buyer.shouldClose(lastBar);
             this.log.exiting(this.getClass().getSimpleName(), "shouldClose");
             return buyerClear;
         }
@@ -515,7 +524,7 @@ public class LiveController implements BinanceApiCallback<CandlestickEvent> {
             String readableTime = Static.toReadableDateTime( dateTime );
             BigDecimal close = (BigDecimal) bar.getClosePrice().getDelegate();
             PositionState state = getState();
-            BigDecimal stopLoss = this.buyer.getTrailingStop().getStopLoss();
+            BigDecimal stopLoss = this.getStopLoss();
             String csvStopLoss = stopLoss.compareTo( BigDecimal.ZERO ) == 0 ? "" : stopLoss.toPlainString();
 
             this.tsWriter

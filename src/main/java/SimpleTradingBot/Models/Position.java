@@ -1,6 +1,7 @@
 package SimpleTradingBot.Models;
 
 
+import SimpleTradingBot.Config.Config;
 import SimpleTradingBot.Exception.STBException;
 import com.binance.api.client.domain.OrderStatus;
 import com.binance.api.client.domain.account.NewOrder;
@@ -11,9 +12,12 @@ import com.binance.api.client.exception.BinanceApiException;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static SimpleTradingBot.Config.Config.MAX_ORDER_UPDATES;
+import static SimpleTradingBot.Config.Config.STOP_LOSS_PERCENT;
 
 public class Position {
 
@@ -25,10 +29,14 @@ public class Position {
 
     private int nUpdate;
 
+    private List<BigDecimal> stopLosses;
+
     public Position(NewOrder originalOrder, NewOrderResponse originalOrderResponse) {
         this.originalOrder = originalOrder;
         this.originalOrderResponse = originalOrderResponse;
         this.nUpdate = 0;
+        this.stopLosses = new ArrayList<>();
+        this.stopLosses.add(BigDecimal.ZERO);
         this.updatedOrders = new Order[ MAX_ORDER_UPDATES ];
     }
 
@@ -48,6 +56,26 @@ public class Position {
         }
 
         throw new STBException( 100 );
+    }
+
+    public BigDecimal getStopLoss() {
+        return this.stopLosses.get(this.stopLosses.size() - 1 );
+    }
+
+    public void addStopLoss(BigDecimal close) {
+        BigDecimal newStopLoss = close.multiply( STOP_LOSS_PERCENT );
+        BigDecimal stopLoss = this.getStopLoss();
+        if (newStopLoss.compareTo(stopLoss) >= 0) {
+            this.stopLosses.add(newStopLoss);
+        }
+    }
+
+    public boolean isStopLossBreached(BigDecimal close) {
+        if (this.stopLosses.isEmpty()) {
+            return false;
+        }
+        BigDecimal stopLoss = this.stopLosses.get(this.stopLosses.size() - 1);
+        return close.compareTo(stopLoss) < 0;
     }
 
     public void cancelOrder( CancelOrderResponse response ) {

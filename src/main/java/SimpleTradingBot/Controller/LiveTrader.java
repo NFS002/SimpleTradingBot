@@ -43,8 +43,6 @@ public class LiveTrader {
 
     private final ArrayList<Cycle> cycles;
 
-    private TrailingStop trailingStop;
-
     private BinanceApiRestClient client;
 
     private PositionState state;
@@ -61,7 +59,6 @@ public class LiveTrader {
         this.symbol = symbol;
         this.cycles = new ArrayList<>();
         this.log = Logger.getLogger("root." + symbol + "." + loggerName);
-        this.trailingStop = new TrailingStop( symbol );
         this.client = Static.getFactory().newRestClient();
         this.state = new PositionState();
         this.constraints = getConstraint( symbol );
@@ -72,15 +69,15 @@ public class LiveTrader {
     /* Getters */
 
     public ArrayList<Cycle> getCycles() {
-        return cycles;
+        return this.cycles;
     }
 
-    public TrailingStop getTrailingStop() {
-        return trailingStop;
+    public Cycle getLastCycle() {
+        return this.cycles.get(this.cycles.size() - 1);
     }
 
     public PositionState getState() {
-        return state;
+        return this.state;
     }
 
     /* Methods */
@@ -95,9 +92,10 @@ public class LiveTrader {
     boolean shouldClose( Bar bar ) {
         log.entering(this.getClass().getSimpleName(), "shouldClose");
         BigDecimal lastPrice = (BigDecimal) bar.getClosePrice().getDelegate();
-        BigDecimal stopLoss = this.trailingStop.getStopLoss();
-        boolean breached = lastPrice.compareTo( stopLoss ) <= 0;
-        this.log.info("Last price: " + lastPrice + ". Stop loss: "  + stopLoss + ". Breached: " + breached );
+        Position buyPosition = this.getLastCycle().getBuyPosition();
+        boolean breached = buyPosition.isStopLossBreached( lastPrice );
+        this.log.info("Last price: " + lastPrice +
+                ", breached: " + breached );
         this.log.exiting(this.getClass().getSimpleName(), "shouldClose");
         if ( Config.FORCE_CLOSE )
             return true;
@@ -109,6 +107,10 @@ public class LiveTrader {
         this.log.entering(this.getClass().getSimpleName(), "open");
         AccountManager am = AccountManager.getInstance();
         BigDecimal tradeValue = am.getNextTradeValue();
+        if (tradeValue.compareTo(MIN_QUOTE_PER_TRADE) <= 0) {
+            this.log.warning(String.format("Order trade value of %s is below configured minimum of %s", tradeValue, MIN_QUOTE_PER_TRADE));
+            return false;
+        }
         BigDecimal baseQty = tradeValue.divide(close, MathContext.DECIMAL64);
         BigDecimal minQty = this.constraints.getMIN_QTY();
 
@@ -134,9 +136,8 @@ public class LiveTrader {
             return false;
         }
         else {
-            BigDecimal initialStop = close.multiply( STOP_LOSS_PERCENT );
-            this.trailingStop.setStopLoss(initialStop);
             Position position = new Position(newOrder, response);
+            position.addStopLoss(close);
             Cycle newCycle = new Cycle( position );
             this.cycles.add( newCycle );
         }
@@ -161,8 +162,7 @@ public class LiveTrader {
         }
         else {
             this.log.info("Closed at: " + close + ", " + dateTime);
-            this.trailingStop.reset( );
-            Cycle lastCycle = this.cycles.get( this.cycles.size() - 1 );
+            Cycle lastCycle = this.getLastCycle();
             Position sellPosition = new Position( sellOrder, sellOrderResponse );
             lastCycle.setSellPosition( sellPosition );
         }
@@ -172,7 +172,7 @@ public class LiveTrader {
     }
 
     private String getSellQty( ) {
-        Cycle currentCycle = this.cycles.get( this.cycles.size() - 1 );
+        Cycle currentCycle = this.getLastCycle();
         Position currentBuyPosition = currentCycle.getBuyPosition();
         switch ( Config.TEST_LEVEL ) {
             case REAL:
@@ -310,8 +310,11 @@ public class LiveTrader {
     private void updateStopLoss( BigDecimal close ) {
         this.log.entering(this.getClass().getSimpleName(), "updateStopLoss");
         this.log.info("Updating stop loss");
-        if ( Config.TRAILING_STOP && this.state.isBuyOrHold() )
-            this.trailingStop.update( close );
+        if ( Config.TRAILING_STOP && this.state.isBuyOrHold() ){
+            Position buyPosition = this.getLastCycle().getBuyPosition();
+            BigDecimal newStopLoss = close.multiply( Config.STOP_LOSS_PERCENT );
+            buyPosition.addStopLoss(newStopLoss);
+        }
         this.log.exiting(this.getClass().getSimpleName(), "updateStopLoss");
     }
 
